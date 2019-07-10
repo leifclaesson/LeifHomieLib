@@ -1,0 +1,22 @@
+{
+  "name":"LeifHomieLib",
+  "description":"Light weight homie v3 (MQTT) Library for ESP8266",
+  "keywords":"mqtt,homie",
+  "authors":
+  {
+    "name": "Leif Claesson",
+    "maintainer": true
+  },
+  "repository":
+  {
+    "type": "git",
+    "url": "https://github.com/liket/leifhomielib.git"
+  },
+  "version": "0.0.1",
+  "license": "LGPL-3.0",
+  "frameworks": "arduino",
+  "platforms": "espressif8266",
+  "build": {
+    "libCompatMode": 2
+  }  
+}
