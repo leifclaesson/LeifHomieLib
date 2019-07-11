@@ -1,6 +1,6 @@
 {
   "name":"LeifHomieLib",
-  "description":"Light weight homie v3 (MQTT) Library for ESP8266",
+  "description":"Light weight homie v3 (MQTT) Library for ESP8266/ESP32",
   "keywords":"mqtt,homie",
   "authors":
   {
