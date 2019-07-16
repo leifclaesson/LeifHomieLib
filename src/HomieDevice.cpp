@@ -70,8 +70,16 @@ void HomieDevice::Init()
 		HomieNode * pNode=NewNode();
 
 		pNode->strID="dummy";
-		pNode->strFriendlyName="Dummy Node";
+		pNode->strFriendlyName="No Nodes";
 
+/*
+ 	 	lots of mqtt:homie300:srvrm-lightsense:dummy#dummy triggered in the log
+
+  		HomieProperty * pProp=pNode->NewProperty();
+		pProp->strID="dummy";
+		pProp->strFriendlyName="No Properties";
+		pProp->bRetained=false;
+		pProp->datatype=homieString;*/
 
 	}
 

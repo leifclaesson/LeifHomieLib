@@ -47,6 +47,7 @@ public:
 
 	void PublishDirect(const String & topic, uint8_t qos, bool retain, const String & payload);
 
+	AsyncMqttClient mqtt;
 
 private:
 
@@ -54,8 +55,6 @@ private:
 	friend class HomieProperty;
 
 	void DoInitialPublishing();
-
-	AsyncMqttClient mqtt;
 
 	unsigned long ulMqttReconnectCount=0;
 	unsigned long ulHomieStatsTimestamp=0;
