@@ -14,6 +14,9 @@ void HomieLibDebugPrint(const char * szText);
 
 static std::vector<HomieDebugPrintCallback> vecDebugPrint;
 
+const int ipub_qos=1;
+const int sub_qos=2;
+
 void HomieLibRegisterDebugPrintCallback(HomieDebugPrintCallback cb)
 {
 	vecDebugPrint.push_back(cb);
@@ -157,6 +160,11 @@ void HomieDevice::Loop()
 		{
 			ulHomieStatsTimestamp=millis();
 
+			if(bInitialPublishingDone)
+			{
+				mqtt.publish(String(strTopic+"/$state").c_str(), ipub_qos, true, "ready");	//re-publish ready every time we update stats
+			}
+
 			mqtt.publish(String(strTopic+"/$stats/uptime").c_str(), 2, true, String(ulSecondCounter).c_str());
 			mqtt.publish(String(strTopic+"/$stats/signal").c_str(), 2, true, String(WiFi.RSSI()).c_str());
 		}
@@ -193,6 +201,7 @@ void HomieDevice::Loop()
 				csprintf("Connecting...");
 #endif
 				bConnecting=true;
+				bInitialPublishingDone=false;
 				mqtt.connect();
 			}
 		}
@@ -302,9 +311,6 @@ void HomieDevice::DoInitialPublishing()
 	if(bDebug) csprintf("IPUB: %i        Node=%i  Prop=%i\n",iInitialPublishing, iInitialPublishing_Node, iInitialPublishing_Prop);
 #endif
 
-
-	const int ipub_qos=1;
-	const int sub_qos=2;
 
 	if(iInitialPublishing==0)
 	{
@@ -465,6 +471,8 @@ void HomieDevice::DoInitialPublishing()
 		bDoInitialPublishing=false;
 		csprintf("Initial publishing complete. %i nodes, %i properties\n",vecNode.size(),iPubCount_Props);
 		FinishInitialPublishing(this);
+
+		bInitialPublishingDone=true;
 
 		ulPublishDefaultsTimestamp=millis()+5000;
 		bDoPublishDefaults=true;

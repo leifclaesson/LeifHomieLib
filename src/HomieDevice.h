@@ -24,7 +24,7 @@ public:
 
 	HomieDevice();
 	
-	int iInitialPublishingThrottle_ms=300;
+	int iInitialPublishingThrottle_ms=500;
 
 	String strMqttServerIP;
 	String strMqttUserName;
@@ -67,6 +67,8 @@ private:
 	bool bConnecting=false;
 
 	bool bDoInitialPublishing=false;
+
+	bool bInitialPublishingDone=false;
 
 	int iInitialPublishing=0;
 	int iInitialPublishing_Node=0;
