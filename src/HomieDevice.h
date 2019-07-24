@@ -24,7 +24,7 @@ public:
 
 	HomieDevice();
 	
-	int iInitialPublishingThrottle_ms=500;
+	int iInitialPublishingThrottle_ms=100;
 
 	String strMqttServerIP;
 	String strMqttUserName;
@@ -45,11 +45,13 @@ public:
 
 	bool IsConnected();
 
-	void PublishDirect(const String & topic, uint8_t qos, bool retain, const String & payload);
+	uint16_t PublishDirect(const String & topic, uint8_t qos, bool retain, const String & payload);
 
 	AsyncMqttClient mqtt;
 
 private:
+
+	uint16_t Publish(const char* topic, uint8_t qos, bool retain, const char* payload = nullptr, size_t length = 0, bool dup = false, uint16_t message_id = 0);
 
 	friend class HomieNode;
 	friend class HomieProperty;
@@ -98,5 +100,14 @@ private:
 
 	bool bDoPublishDefaults=false;	//publish default retained values that did not yet exist in the controller
 	unsigned long ulPublishDefaultsTimestamp=0;
+
+	void HandleInitialPublishingError();
+
+	bool bSendError=false;
+	unsigned long ulSendErrorTimestamp;
+
+	int GetErrorRetryFrequency();
+
+
 
 };

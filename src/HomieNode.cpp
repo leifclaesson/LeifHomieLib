@@ -105,12 +105,14 @@ void HomieProperty::PublishDefault()
 
 }
 
-void HomieProperty::Publish()
+bool HomieProperty::Publish()
 {
-	if(!bInitialized) return;
+	if(!bInitialized) return false;
+
+	bool bRet=false;
 	String strPublish=strValue;
 
-	if(!strPublish.length() && !bPublishEmptyString) return;
+	if(!strPublish.length() && !bPublishEmptyString) return true;
 
 	if(!strPublish.length() && !HomieDataTypeAllowsEmpty(datatype))
 	{
@@ -131,8 +133,9 @@ void HomieProperty::Publish()
 #ifdef HOMIELIB_VERBOSE
 		csprintf("%s publishing \"%s\"\n",strFriendlyName.c_str(),strPublish.c_str());
 #endif
-		pParent->pParent->mqtt.publish(strTopic.c_str(), 2, bRetained, strPublish.c_str(), strPublish.length());
+		bRet=0!=pParent->pParent->mqtt.publish(strTopic.c_str(), 2, bRetained, strPublish.c_str(), strPublish.length());
 	}
+	return bRet;
 }
 
 

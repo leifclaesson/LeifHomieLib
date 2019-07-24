@@ -51,7 +51,7 @@ public:
 	void SetValue(const String & strNewValue);
 	void SetBool(bool bValue);
 
-	void Publish();
+	bool Publish();
 
 	void OnMqttMessage(char* topic, char* payload, AsyncMqttClientMessageProperties & properties, size_t len, size_t index, size_t total);
 

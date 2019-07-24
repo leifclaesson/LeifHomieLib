@@ -104,12 +104,14 @@ void HomieDevice::Init()
 	mqtt.onDisconnect(std::bind(&HomieDevice::onDisconnect, this, std::placeholders::_1));
 	mqtt.onMessage(std::bind(&HomieDevice::onMqttMessage, this, std::placeholders::_1, std::placeholders::_2, std::placeholders::_3, std::placeholders::_4, std::placeholders::_5, std::placeholders::_6));
 
+	bSendError=false;
+
 	bInitialized=true;
 }
 
 void HomieDevice::Quit()
 {
-	mqtt.publish(String(strTopic+"/$state").c_str(), 1, true, "disconnected");
+	Publish(String(strTopic+"/$state").c_str(), 1, true, "disconnected");
 	mqtt.disconnect(false);
 	bInitialized=false;
 }
@@ -139,7 +141,7 @@ void HomieDevice::Loop()
 			{
 				iWiFiRSSI=iWiFiRSSI_Current;
 
-				mqtt.publish(String(strTopic+"/$stats/signal").c_str(), 2, true, String(iWiFiRSSI).c_str());
+				Publish(String(strTopic+"/$stats/signal").c_str(), 2, true, String(iWiFiRSSI).c_str());
 			}
 		}
 
@@ -156,17 +158,28 @@ void HomieDevice::Loop()
 //		pubsubClient.loop();
 		ulMqttReconnectCount=0;
 
-		if(millis()-ulHomieStatsTimestamp>=30000)
+		if((int) (millis()-ulHomieStatsTimestamp)>=30000)
 		{
-			ulHomieStatsTimestamp=millis();
+			bool bError=false;
 
 			if(bInitialPublishingDone)
 			{
-				mqtt.publish(String(strTopic+"/$state").c_str(), ipub_qos, true, "ready");	//re-publish ready every time we update stats
+				bError |= 0==Publish(String(strTopic+"/$state").c_str(), ipub_qos, true, "ready");	//re-publish ready every time we update stats
 			}
 
-			mqtt.publish(String(strTopic+"/$stats/uptime").c_str(), 2, true, String(ulSecondCounter).c_str());
-			mqtt.publish(String(strTopic+"/$stats/signal").c_str(), 2, true, String(WiFi.RSSI()).c_str());
+			bError |= 0==Publish(String(strTopic+"/$stats/uptime").c_str(), 2, true, String(ulSecondCounter).c_str());
+			bError |= 0==Publish(String(strTopic+"/$stats/signal").c_str(), 2, true, String(WiFi.RSSI()).c_str());
+
+			if(bError)
+			{
+				ulHomieStatsTimestamp=millis()-(30000-GetErrorRetryFrequency());	//retry in a while
+			}
+			else
+			{
+				ulHomieStatsTimestamp=millis();
+			}
+
+//			csprintf("Periodic publishing: %i, %i, %i\n",pub_return[0],pub_return[1],pub_return[2]);
 		}
 
 		if(bDoPublishDefaults && (int) (millis()-ulPublishDefaultsTimestamp)>0)
@@ -201,12 +214,17 @@ void HomieDevice::Loop()
 				csprintf("Connecting...");
 #endif
 				bConnecting=true;
+				bSendError=false;
 				bInitialPublishingDone=false;
+
 				mqtt.connect();
 			}
 		}
 
 	}
+
+
+
 
 
 
@@ -221,11 +239,10 @@ void HomieDevice::onConnect(bool sessionPresent)
 	bConnecting=false;
 
 	bDoInitialPublishing=true;
-
-	if(sessionPresent)
-	{
-	}
-
+	iInitialPublishing=0;
+	iInitialPublishing_Node=0;
+	iInitialPublishing_Prop=0;
+	iPubCount_Props=0;
 
 }
 
@@ -280,6 +297,12 @@ HomieNode * HomieDevice::NewNode()
 }
 
 
+void HomieDevice::HandleInitialPublishingError()
+{
+	csprintf("Initial publishing error at stage %i, retrying in %i\n",iInitialPublishing,GetErrorRetryFrequency());
+
+	ulInitialPublishing=millis()+GetErrorRetryFrequency();
+}
 
 void HomieDevice::DoInitialPublishing()
 {
@@ -290,7 +313,7 @@ void HomieDevice::DoInitialPublishing()
 		return;
 	}
 
-	if(ulInitialPublishing!=0 && (millis()-ulInitialPublishing)<(unsigned long) iInitialPublishingThrottle_ms)
+	if(ulInitialPublishing!=0 && (int) (millis()-ulInitialPublishing)<iInitialPublishingThrottle_ms)
 	{
 		return;
 	}
@@ -314,27 +337,45 @@ void HomieDevice::DoInitialPublishing()
 
 	if(iInitialPublishing==0)
 	{
-		mqtt.publish(String(strTopic+"/$state").c_str(), ipub_qos, true, "init");
-		mqtt.publish(String(strTopic+"/$homie").c_str(), ipub_qos, true, "3.0.1");
-		mqtt.publish(String(strTopic+"/$name").c_str(), ipub_qos, true, strFriendlyName.c_str());
-		iInitialPublishing=1;
+		bool bError=false;
+		bError |= 0==Publish(String(strTopic+"/$state").c_str(), ipub_qos, true, "init");
+		bError |= 0==Publish(String(strTopic+"/$homie").c_str(), ipub_qos, true, "3.0.1");
+		bError |= 0==Publish(String(strTopic+"/$name").c_str(), ipub_qos, true, strFriendlyName.c_str());
+		if(bError)
+		{
+			HandleInitialPublishingError();
+		}
+		else
+		{
+			iInitialPublishing=1;
+		}
 		return;
 	}
 
 	if(iInitialPublishing==1)
 	{
-		mqtt.publish(String(strTopic+"/$localip").c_str(), ipub_qos, true, WiFi.localIP().toString().c_str());
-		mqtt.publish(String(strTopic+"/$mac").c_str(), ipub_qos, true, WiFi.macAddress().c_str());
-		mqtt.publish(String(strTopic+"/$extensions").c_str(), ipub_qos, true, "");
-		iInitialPublishing=2;
+		bool bError=false;
+		bError |= 0==Publish(String(strTopic+"/$localip").c_str(), ipub_qos, true, WiFi.localIP().toString().c_str());
+		bError |= 0==Publish(String(strTopic+"/$mac").c_str(), ipub_qos, true, WiFi.macAddress().c_str());
+		bError |= 0==Publish(String(strTopic+"/$extensions").c_str(), ipub_qos, true, "");
+
+		if(bError)
+		{
+			HandleInitialPublishingError();
+		}
+		else
+		{
+			iInitialPublishing=2;
+		}
 		return;
 	}
 
 	if(iInitialPublishing==2)
 	{
+		bool bError=false;
 
-		mqtt.publish(String(strTopic+"/$stats").c_str(), ipub_qos, true, "uptime,signal");
-		mqtt.publish(String(strTopic+"/$stats/interval").c_str(), ipub_qos, true, "60");
+		bError |= 0==Publish(String(strTopic+"/$stats").c_str(), ipub_qos, true, "uptime,signal");
+		bError |= 0==Publish(String(strTopic+"/$stats/interval").c_str(), ipub_qos, true, "60");
 
 		String strNodes;
 		for(size_t i=0;i<vecNode.size();i++)
@@ -347,18 +388,25 @@ void HomieDevice::DoInitialPublishing()
 		if(bDebug) csprintf("NODES: %s\n",strNodes.c_str());
 #endif
 
-		mqtt.publish(String(strTopic+"/$nodes").c_str(), ipub_qos, true, strNodes.c_str());
+		bError |= 0==Publish(String(strTopic+"/$nodes").c_str(), ipub_qos, true, strNodes.c_str());
 
-		iInitialPublishing_Node=0;
-		iInitialPublishing=3;
+		if(bError)
+		{
+			HandleInitialPublishingError();
+		}
+		else
+		{
+			iInitialPublishing_Node=0;
+			iInitialPublishing=3;
+		}
 		return;
 	}
 
 
 	if(iInitialPublishing==3)
 	{
+		bool bError=false;
 		int i=iInitialPublishing_Node;
-		iInitialPublishing_Node++;
 		if(i<(int) vecNode.size())
 		{
 			HomieNode & node=*vecNode[i];
@@ -366,8 +414,8 @@ void HomieDevice::DoInitialPublishing()
 			if(bDebug) csprintf("NODE %i: %s\n",i,node.strFriendlyName.c_str());
 #endif
 
-			mqtt.publish(String(node.strTopic+"/$name").c_str(), ipub_qos, true, node.strFriendlyName.c_str());
-			mqtt.publish(String(node.strTopic+"/$type").c_str(), ipub_qos, true, node.strType.c_str());
+			bError |= 0==Publish(String(node.strTopic+"/$name").c_str(), ipub_qos, true, node.strFriendlyName.c_str());
+			bError |= 0==Publish(String(node.strTopic+"/$type").c_str(), ipub_qos, true, node.strType.c_str());
 
 			String strProperties;
 			for(size_t j=0;j<node.vecProperty.size();j++)
@@ -380,7 +428,17 @@ void HomieDevice::DoInitialPublishing()
 			if(bDebug) csprintf("NODE %i: %s has properties %s\n",i,node.strFriendlyName.c_str(),strProperties.c_str());
 #endif
 
-			mqtt.publish(String(node.strTopic+"/$properties").c_str(), ipub_qos, true, strProperties.c_str());
+			bError |= 0==Publish(String(node.strTopic+"/$properties").c_str(), ipub_qos, true, strProperties.c_str());
+
+			if(bError)
+			{
+				HandleInitialPublishingError();
+			}
+			else
+			{
+				iInitialPublishing_Node++;
+			}
+
 			return;
 		}
 
@@ -394,6 +452,7 @@ void HomieDevice::DoInitialPublishing()
 
 	if(iInitialPublishing==4)
 	{
+		bool bError=false;
 		int i=iInitialPublishing_Node;
 
 		if(i<(int) vecNode.size())
@@ -404,7 +463,6 @@ void HomieDevice::DoInitialPublishing()
 #endif
 
 			int j=iInitialPublishing_Prop;
-			iInitialPublishing_Prop++;
 			if(j<(int) node.vecProperty.size())
 			{
 				HomieProperty & prop=*node.vecProperty[j];
@@ -413,12 +471,18 @@ void HomieDevice::DoInitialPublishing()
 				if(bDebug) csprintf("NODE %i: %s property %s\n",i,node.strFriendlyName.c_str(),prop.strFriendlyName.c_str());
 #endif
 
-				mqtt.publish(String(prop.strTopic+"/$name").c_str(), ipub_qos, true, prop.strFriendlyName.c_str());
-				mqtt.publish(String(prop.strTopic+"/$settable").c_str(), ipub_qos, true, prop.bSettable?"true":"false");
-				mqtt.publish(String(prop.strTopic+"/$retained").c_str(), ipub_qos, true, prop.bRetained?"true":"false");
-				mqtt.publish(String(prop.strTopic+"/$datatype").c_str(), ipub_qos, true, GetHomieDataTypeText(prop.datatype));
-				if(prop.strUnit.length()) mqtt.publish(String(prop.strTopic+"/$unit").c_str(), ipub_qos, true, prop.strUnit.c_str());
-				if(prop.strFormat.length()) mqtt.publish(String(prop.strTopic+"/$format").c_str(), ipub_qos, true, prop.strFormat.c_str());
+				bError |= 0==Publish(String(prop.strTopic+"/$name").c_str(), ipub_qos, true, prop.strFriendlyName.c_str());
+				bError |= 0==Publish(String(prop.strTopic+"/$settable").c_str(), ipub_qos, true, prop.bSettable?"true":"false");
+				bError |= 0==Publish(String(prop.strTopic+"/$retained").c_str(), ipub_qos, true, prop.bRetained?"true":"false");
+				bError |= 0==Publish(String(prop.strTopic+"/$datatype").c_str(), ipub_qos, true, GetHomieDataTypeText(prop.datatype));
+				if(prop.strUnit.length())
+				{
+					bError |= 0==Publish(String(prop.strTopic+"/$unit").c_str(), ipub_qos, true, prop.strUnit.c_str());
+				}
+				if(prop.strFormat.length())
+				{
+					bError |= 0==Publish(String(prop.strTopic+"/$format").c_str(), ipub_qos, true, prop.strFormat.c_str());
+				}
 
 				if(prop.bSettable)
 				{
@@ -429,27 +493,35 @@ void HomieDevice::DoInitialPublishing()
 #ifdef HOMIELIB_VERBOSE
 						csprintf("SUBSCRIBING to %s\n",prop.strTopic.c_str());
 #endif
-						mqtt.subscribe(prop.strTopic.c_str(), sub_qos);
+						bError |= 0==mqtt.subscribe(prop.strTopic.c_str(), sub_qos);
 					}
 #ifdef HOMIELIB_VERBOSE
 					csprintf("SUBSCRIBING to %s\n",prop.strSetTopic.c_str());
 #endif
-					mqtt.subscribe(prop.strSetTopic.c_str(), sub_qos);
+					bError |= 0==mqtt.subscribe(prop.strSetTopic.c_str(), sub_qos);
 				}
 				else
 				{
-					prop.Publish();
+					bError |= false==prop.Publish();
 				}
 
 
 
 
-				iPubCount_Props++;
+				if(bError)
+				{
+					HandleInitialPublishingError();
+				}
+				else
+				{
+					iInitialPublishing_Prop++;
+					iPubCount_Props++;
+				}
 
 				return;
 			}
 
-			if(iInitialPublishing_Prop>=(int) node.vecProperty.size())
+			if(j>=(int) node.vecProperty.size())
 			{
 				iInitialPublishing_Prop=0;
 				iInitialPublishing_Node++;
@@ -467,23 +539,72 @@ void HomieDevice::DoInitialPublishing()
 
 	if(iInitialPublishing==5)
 	{
-		mqtt.publish(String(strTopic+"/$state").c_str(), ipub_qos, true, "ready");
-		bDoInitialPublishing=false;
-		csprintf("Initial publishing complete. %i nodes, %i properties\n",vecNode.size(),iPubCount_Props);
-		FinishInitialPublishing(this);
+		bool bError=false;
+		bError |= 0==Publish(String(strTopic+"/$state").c_str(), ipub_qos, true, "ready");
 
-		bInitialPublishingDone=true;
+		if(bError)
+		{
+			HandleInitialPublishingError();
+		}
+		else
+		{
+			bDoInitialPublishing=false;
+			csprintf("Initial publishing complete. %i nodes, %i properties\n",vecNode.size(),iPubCount_Props);
+			FinishInitialPublishing(this);
 
-		ulPublishDefaultsTimestamp=millis()+5000;
-		bDoPublishDefaults=true;
+			bInitialPublishingDone=true;
+
+			ulPublishDefaultsTimestamp=millis()+5000;
+			bDoPublishDefaults=true;
+		}
 
 	}
 
 }
 
-void HomieDevice::PublishDirect(const String & topic, uint8_t qos, bool retain, const String & payload)
+uint16_t HomieDevice::PublishDirect(const String & topic, uint8_t qos, bool retain, const String & payload)
 {
-	mqtt.publish(topic.c_str(), qos, retain, payload.c_str(), payload.length());
+	return mqtt.publish(topic.c_str(), qos, retain, payload.c_str(), payload.length());
+}
+
+bool bFailPublish=false;
+
+uint16_t HomieDevice::Publish(const char* topic, uint8_t qos, bool retain, const char* payload, size_t length, bool dup, uint16_t message_id)
+{
+	if(!IsConnected()) return 0;
+	uint16_t ret=0;
+
+	if(!bFailPublish)
+	{
+		ret=mqtt.publish(topic,qos,retain,payload,length,dup,message_id);
+	}
+
+	//csprintf("Publish %s: ret %i\n",topic,ret);
+
+	if(!ret)
+	{	//failure
+		if(!bSendError)
+		{
+			bSendError=true;
+			ulSendErrorTimestamp=millis();
+		}
+		else
+		{
+			if((int) (millis()-ulSendErrorTimestamp) > 60000)	//a full minute with no successes
+			{
+				csprintf("Full minute with no publish successes, disconnect and try again\n");
+				mqtt.disconnect(true);
+				bSendError=false;
+			}
+		}
+	}
+	else
+	{	//success
+		bSendError=false;
+
+	}
+
+	return ret;
 }
 
 
@@ -599,3 +720,18 @@ bool HomieParseHSV(const char * in, uint32_t & rgb)
 	return false;
 }
 
+
+int HomieDevice::GetErrorRetryFrequency()
+{
+	int iErrorDuration=(int) (millis()-ulSendErrorTimestamp);
+	if(iErrorDuration >= 20000)
+	{
+		return 10000;
+	}
+	if(iErrorDuration >= 5000)
+	{
+		return 5000;
+	}
+
+	return 1000;
+}
