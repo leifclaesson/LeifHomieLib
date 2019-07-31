@@ -55,7 +55,7 @@ void FinishInitialPublishing(HomieDevice * pSource)
 }
 
 
-
+//#define HOMIELIB_VERBOSE
 
 HomieDevice::HomieDevice()
 {
@@ -128,13 +128,17 @@ void HomieDevice::Loop()
 {
 	if(!bInitialized) return;
 
-	if((int) (millis()-ulLastLoopSeconds)>=1000)
+	bool bEvenSecond=false;
+
+	if((int) (millis()-ulLastLoopSecondCounterTimestamp)>=1000)
 	{
-		ulLastLoopSeconds+=1000;
-		ulSecondCounter++;
+		ulLastLoopSecondCounterTimestamp+=1000;
+		ulSecondCounter_Uptime++;
+		ulSecondCounter_WiFi++;
+		ulSecondCounter_MQTT++;
 
 
-		if(bRapidUpdateRSSI && (ulSecondCounter & 1))
+		if(bRapidUpdateRSSI && (ulSecondCounter_Uptime & 1))
 		{
 			int iWiFiRSSI_Current=WiFi.RSSI();
 			if(iWiFiRSSI!=iWiFiRSSI_Current)
@@ -145,10 +149,30 @@ void HomieDevice::Loop()
 			}
 		}
 
+		bEvenSecond=true;
 	}
 
-	if(WiFi.status() != WL_CONNECTED) return;
 
+	bool bEvenDeciSecond=false;
+
+	if((int) (millis()-ulLastLoopDeciSecondCounterTimestamp)>=100)
+	{
+		ulLastLoopDeciSecondCounterTimestamp+=100;
+		bEvenDeciSecond=true;
+	}
+
+	if(!bEvenDeciSecond) return;
+
+	if(bEvenSecond)
+	{
+	}
+
+	if(WiFi.status() != WL_CONNECTED)
+	{
+		ulSecondCounter_WiFi=0;
+		ulSecondCounter_MQTT=0;
+		return;
+	}
 
 	if(mqtt.connected())
 	{
@@ -167,7 +191,9 @@ void HomieDevice::Loop()
 				bError |= 0==Publish(String(strTopic+"/$state").c_str(), ipub_qos, true, "ready");	//re-publish ready every time we update stats
 			}
 
-			bError |= 0==Publish(String(strTopic+"/$stats/uptime").c_str(), 2, true, String(ulSecondCounter).c_str());
+			bError |= 0==Publish(String(strTopic+"/$stats/uptime").c_str(), 2, true, String(ulSecondCounter_Uptime).c_str());
+			bError |= 0==Publish(String(strTopic+"/$stats/uptime-wifi").c_str(), 2, true, String(ulSecondCounter_WiFi).c_str());
+			bError |= 0==Publish(String(strTopic+"/$stats/uptime-mqtt").c_str(), 2, true, String(ulSecondCounter_MQTT).c_str());
 			bError |= 0==Publish(String(strTopic+"/$stats/signal").c_str(), 2, true, String(WiFi.RSSI()).c_str());
 
 			if(bError)
@@ -196,43 +222,49 @@ void HomieDevice::Loop()
 	else
 	{
 
+		//csprintf("not connected. bConnecting=%i\n",bConnecting);
+
+		ulSecondCounter_MQTT=0;
+
 		ulHomieStatsTimestamp=millis()-1000000;
 
 		if(!bConnecting)
 		{
 
-			unsigned long interval=5000;
-			if(ulMqttReconnectCount>=20) interval=60000;
-			else if(ulMqttReconnectCount>=15) interval=30000;
-			else if(ulMqttReconnectCount>=10) interval=20000;
-			else if(ulMqttReconnectCount>=5) interval=10000;
+			//csprintf("millis()-ulLastReconnect=%i  interval=%i\n",millis()-ulLastReconnect,interval);
 
-			if(!ulLastReconnect || (millis()-ulLastReconnect)>interval)
+			if(!ulLastReconnect || (millis()-ulLastReconnect)>GetReconnectInterval())
 			{
 
-#ifdef HOMIELIB_VERBOSE
-				csprintf("Connecting...");
-#endif
+				csprintf("Connecting to MQTT server %s...\n",strMqttServerIP.c_str());
 				bConnecting=true;
 				bSendError=false;
 				bInitialPublishingDone=false;
 
+				ulConnectTimestamp=millis();
 				mqtt.connect();
 			}
 		}
+		else
+		{
+			//if we're still not connected after a minute, try again
+			if(!ulConnectTimestamp || (millis()-ulConnectTimestamp)>60000)
+			{
+				csprintf("Reconnect needed, dangling flag\n");
+				mqtt.disconnect(true);
+				bConnecting=false;
+			}
 
+		}
 	}
-
-
-
-
-
-
 
 }
 
 void HomieDevice::onConnect(bool sessionPresent)
 {
+	if(sessionPresent)	//squelch unused parameter warning
+	{
+	}
 #ifdef HOMIELIB_VERBOSE
 	csprintf("onConnect... %p\n",this);
 #endif
@@ -243,6 +275,8 @@ void HomieDevice::onConnect(bool sessionPresent)
 	iInitialPublishing_Node=0;
 	iInitialPublishing_Prop=0;
 	iPubCount_Props=0;
+
+	ulSecondCounter_MQTT=0;
 
 }
 
@@ -258,7 +292,7 @@ void HomieDevice::onDisconnect(AsyncMqttClientDisconnectReason reason)
 		ulMqttReconnectCount++;
 		bConnecting=false;
 		//csprintf("onDisconnect...   reason %i.. lr=%lu\n",reason,ulLastReconnect);
-		csprintf("MQTT server connection failed\n");
+		csprintf("MQTT server connection failed. Retrying in %lums\n",GetReconnectInterval());
 	}
 	else
 	{
@@ -374,7 +408,7 @@ void HomieDevice::DoInitialPublishing()
 	{
 		bool bError=false;
 
-		bError |= 0==Publish(String(strTopic+"/$stats").c_str(), ipub_qos, true, "uptime,signal");
+		bError |= 0==Publish(String(strTopic+"/$stats").c_str(), ipub_qos, true, "uptime,signal,uptime-wifi,uptime-mqtt");
 		bError |= 0==Publish(String(strTopic+"/$stats/interval").c_str(), ipub_qos, true, "60");
 
 		String strNodes;
@@ -471,38 +505,50 @@ void HomieDevice::DoInitialPublishing()
 				if(bDebug) csprintf("NODE %i: %s property %s\n",i,node.strFriendlyName.c_str(),prop.strFriendlyName.c_str());
 #endif
 
-				bError |= 0==Publish(String(prop.strTopic+"/$name").c_str(), ipub_qos, true, prop.strFriendlyName.c_str());
-				bError |= 0==Publish(String(prop.strTopic+"/$settable").c_str(), ipub_qos, true, prop.bSettable?"true":"false");
-				bError |= 0==Publish(String(prop.strTopic+"/$retained").c_str(), ipub_qos, true, prop.bRetained?"true":"false");
-				bError |= 0==Publish(String(prop.strTopic+"/$datatype").c_str(), ipub_qos, true, GetHomieDataTypeText(prop.datatype));
-				if(prop.strUnit.length())
+				if(prop.bStandardMQTT)
 				{
-					bError |= 0==Publish(String(prop.strTopic+"/$unit").c_str(), ipub_qos, true, prop.strUnit.c_str());
-				}
-				if(prop.strFormat.length())
-				{
-					bError |= 0==Publish(String(prop.strTopic+"/$format").c_str(), ipub_qos, true, prop.strFormat.c_str());
-				}
-
-				if(prop.bSettable)
-				{
+	#ifdef HOMIELIB_VERBOSE
+					csprintf("SUBSCRIBING to MQTT topic %s\n",prop.strTopic.c_str());
+	#endif
+					bError |= 0==mqtt.subscribe(prop.strTopic.c_str(), sub_qos);
 					mapIncoming[prop.strTopic]=&prop;
-					mapIncoming[prop.strSetTopic]=&prop;
-					if(prop.bRetained)
-					{
-#ifdef HOMIELIB_VERBOSE
-						csprintf("SUBSCRIBING to %s\n",prop.strTopic.c_str());
-#endif
-						bError |= 0==mqtt.subscribe(prop.strTopic.c_str(), sub_qos);
-					}
-#ifdef HOMIELIB_VERBOSE
-					csprintf("SUBSCRIBING to %s\n",prop.strSetTopic.c_str());
-#endif
-					bError |= 0==mqtt.subscribe(prop.strSetTopic.c_str(), sub_qos);
 				}
 				else
 				{
-					bError |= false==prop.Publish();
+
+					bError |= 0==Publish(String(prop.strTopic+"/$name").c_str(), ipub_qos, true, prop.strFriendlyName.c_str());
+					bError |= 0==Publish(String(prop.strTopic+"/$settable").c_str(), ipub_qos, true, prop.bSettable?"true":"false");
+					bError |= 0==Publish(String(prop.strTopic+"/$retained").c_str(), ipub_qos, true, prop.bRetained?"true":"false");
+					bError |= 0==Publish(String(prop.strTopic+"/$datatype").c_str(), ipub_qos, true, GetHomieDataTypeText(prop.datatype));
+					if(prop.strUnit.length())
+					{
+						bError |= 0==Publish(String(prop.strTopic+"/$unit").c_str(), ipub_qos, true, prop.strUnit.c_str());
+					}
+					if(prop.strFormat.length())
+					{
+						bError |= 0==Publish(String(prop.strTopic+"/$format").c_str(), ipub_qos, true, prop.strFormat.c_str());
+					}
+
+					if(prop.bSettable)
+					{
+						mapIncoming[prop.strTopic]=&prop;
+						mapIncoming[prop.strSetTopic]=&prop;
+						if(prop.bRetained)
+						{
+	#ifdef HOMIELIB_VERBOSE
+							csprintf("SUBSCRIBING to %s\n",prop.strTopic.c_str());
+	#endif
+							bError |= 0==mqtt.subscribe(prop.strTopic.c_str(), sub_qos);
+						}
+	#ifdef HOMIELIB_VERBOSE
+						csprintf("SUBSCRIBING to %s\n",prop.strSetTopic.c_str());
+	#endif
+						bError |= 0==mqtt.subscribe(prop.strSetTopic.c_str(), sub_qos);
+					}
+					else
+					{
+						bError |= false==prop.Publish();
+					}
 				}
 
 
@@ -595,6 +641,7 @@ uint16_t HomieDevice::Publish(const char* topic, uint8_t qos, bool retain, const
 				csprintf("Full minute with no publish successes, disconnect and try again\n");
 				mqtt.disconnect(true);
 				bSendError=false;
+				bConnecting=false;
 			}
 		}
 	}
@@ -734,4 +781,24 @@ int HomieDevice::GetErrorRetryFrequency()
 	}
 
 	return 1000;
+}
+
+unsigned long HomieDevice::GetUptimeSeconds_WiFi()
+{
+	return ulSecondCounter_WiFi;
+}
+
+unsigned long HomieDevice::GetUptimeSeconds_MQTT()
+{
+	return ulSecondCounter_MQTT;
+}
+
+unsigned long HomieDevice::GetReconnectInterval()
+{
+	unsigned long interval=5000;
+	if(ulMqttReconnectCount>=20) interval=60000;
+	else if(ulMqttReconnectCount>=15) interval=30000;
+	else if(ulMqttReconnectCount>=10) interval=20000;
+	else if(ulMqttReconnectCount>=5) interval=10000;
+	return interval;
 }

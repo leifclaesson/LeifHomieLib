@@ -24,7 +24,7 @@ public:
 
 	HomieDevice();
 	
-	int iInitialPublishingThrottle_ms=100;
+	int iInitialPublishingThrottle_ms=200;
 
 	String strMqttServerIP;
 	String strMqttUserName;
@@ -48,6 +48,9 @@ public:
 	uint16_t PublishDirect(const String & topic, uint8_t qos, bool retain, const String & payload);
 
 	AsyncMqttClient mqtt;
+
+	unsigned long GetUptimeSeconds_WiFi();
+	unsigned long GetUptimeSeconds_MQTT();
 
 private:
 
@@ -80,6 +83,7 @@ private:
 
 	unsigned long ulInitialPublishing=0;
 
+	unsigned long ulConnectTimestamp=0;
 
 	bool bDebug=false;
 
@@ -93,9 +97,12 @@ private:
 
 	_map_incoming mapIncoming;
 
-	unsigned long ulSecondCounter=0;
-	unsigned long ulLastLoopSeconds=0;
+	unsigned long ulSecondCounter_Uptime=0;
+	unsigned long ulSecondCounter_WiFi=0;
+	unsigned long ulSecondCounter_MQTT=0;
 
+	unsigned long ulLastLoopSecondCounterTimestamp=0;
+	unsigned long ulLastLoopDeciSecondCounterTimestamp=0;
 
 
 	bool bDoPublishDefaults=false;	//publish default retained values that did not yet exist in the controller
@@ -108,6 +115,7 @@ private:
 
 	int GetErrorRetryFrequency();
 
+	unsigned long GetReconnectInterval();
 
 
 };

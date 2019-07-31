@@ -62,10 +62,25 @@ HomieProperty::HomieProperty()
 
 }
 
+void HomieProperty::SetStandardMQTT(const String & strMqttTopic)
+{
+	if(bInitialized) return;
+
+	bStandardMQTT=true;
+	bRetained=false;
+	bSettable=true;
+	strTopic=strMqttTopic;
+	strSetTopic="";
+
+}
+
 void HomieProperty::Init()
 {
-	strTopic=pParent->strTopic+"/"+strID;
-	strSetTopic=strTopic+"/set";
+	if(!bStandardMQTT)
+	{
+		strTopic=pParent->strTopic+"/"+strID;
+		strSetTopic=strTopic+"/set";
+	}
 	bInitialized=true;
 }
 
@@ -90,7 +105,7 @@ const String & HomieProperty::GetValue()
 
 void HomieProperty::PublishDefault()
 {
-	if(bSettable && bRetained && !bReceivedRetained)
+	if(bSettable && bRetained && !bReceivedRetained && !bStandardMQTT)
 	{
 		bReceivedRetained=true;
 		if(strValue.length())
@@ -108,6 +123,7 @@ void HomieProperty::PublishDefault()
 bool HomieProperty::Publish()
 {
 	if(!bInitialized) return false;
+	if(bStandardMQTT) return false;
 
 	bool bRet=false;
 	String strPublish=strValue;
@@ -290,6 +306,9 @@ bool HomieProperty::SetValueConstrained(const String & strNewValue)
 
 void HomieProperty::OnMqttMessage(char* topic, char* payload, AsyncMqttClientMessageProperties & properties, size_t len, size_t index, size_t total)
 {
+	if(properties.retain || total)	//squelch unused parameter warnings
+	{
+	}
 
 	if(index==0)
 	{
@@ -304,7 +323,7 @@ void HomieProperty::OnMqttMessage(char* topic, char* payload, AsyncMqttClientMes
 			DoCallback();
 		}
 
-		if(bRetained && !strcmp(topic,strTopic.c_str()))
+		if(bRetained && !strcmp(topic,strTopic.c_str()) && !bStandardMQTT)
 		{
 #ifdef HOMIELIB_VERBOSE
 			csprintf("%s received initial value for base topic %s. Unsubscribing.\n",strFriendlyName.c_str(),strTopic.c_str());

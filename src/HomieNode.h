@@ -34,6 +34,8 @@ class HomieProperty
 public:
 	HomieProperty();
 
+	void SetStandardMQTT(const String & strMqttTopic);	//call before init to subscribe to a standard MQTT topic. Receive only.
+
 	String strID;
 	String strFriendlyName;
 	bool bSettable=false;
@@ -76,6 +78,8 @@ private:
 	void PublishDefault();
 
 	bool bReceivedRetained=false;
+
+	bool bStandardMQTT=false;
 
 };
 
