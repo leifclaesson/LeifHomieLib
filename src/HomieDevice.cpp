@@ -518,7 +518,7 @@ void HomieDevice::DoInitialPublishing()
 
 					bError |= 0==Publish(String(prop.strTopic+"/$name").c_str(), ipub_qos, true, prop.strFriendlyName.c_str());
 					bError |= 0==Publish(String(prop.strTopic+"/$settable").c_str(), ipub_qos, true, prop.bSettable?"true":"false");
-					bError |= 0==Publish(String(prop.strTopic+"/$retained").c_str(), ipub_qos, true, prop.bRetained?"true":"false");
+					bError |= 0==Publish(String(prop.strTopic+"/$retained").c_str(), ipub_qos, true, (prop.bRetained || prop.bFakeRetained)?"true":"false");
 					bError |= 0==Publish(String(prop.strTopic+"/$datatype").c_str(), ipub_qos, true, GetHomieDataTypeText(prop.datatype));
 					if(prop.strUnit.length())
 					{
@@ -600,7 +600,7 @@ void HomieDevice::DoInitialPublishing()
 
 			bInitialPublishingDone=true;
 
-			ulPublishDefaultsTimestamp=millis()+5000;
+			ulPublishDefaultsTimestamp=millis()+15000;
 			bDoPublishDefaults=true;
 		}
 

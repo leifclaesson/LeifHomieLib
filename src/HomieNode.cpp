@@ -59,7 +59,8 @@ bool HomieDataTypeAllowsEmpty(eHomieDataType datatype)
 
 HomieProperty::HomieProperty()
 {
-
+	user1=0;
+	user2=0;
 }
 
 void HomieProperty::SetStandardMQTT(const String & strMqttTopic)

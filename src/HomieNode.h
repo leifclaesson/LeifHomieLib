@@ -36,10 +36,14 @@ public:
 
 	void SetStandardMQTT(const String & strMqttTopic);	//call before init to subscribe to a standard MQTT topic. Receive only.
 
+	int user1;
+	int user2;
+
 	String strID;
 	String strFriendlyName;
 	bool bSettable=false;
 	bool bRetained=true;
+	bool bFakeRetained=false;
 	bool bPublishEmptyString=true;
 	String strUnit;
 	eHomieDataType datatype=homieString;
