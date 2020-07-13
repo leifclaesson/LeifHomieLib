@@ -137,8 +137,8 @@ void HomieDevice::Loop()
 	{
 		ulLastLoopSecondCounterTimestamp+=1000;
 		ulSecondCounter_Uptime++;
-		ulSecondCounter_WiFi++;
-		ulSecondCounter_MQTT++;
+		if(WiFi.status() == WL_CONNECTED) ulSecondCounter_WiFi++;
+		if(mqtt.connected()) ulSecondCounter_MQTT++;
 
 
 		if(bRapidUpdateRSSI && (ulSecondCounter_Uptime & 1))
@@ -829,12 +829,12 @@ int HomieDevice::GetErrorRetryFrequency()
 	return 1000;
 }
 
-unsigned long HomieDevice::GetUptimeSeconds_WiFi()
+uint32_t HomieDevice::GetUptimeSeconds_WiFi()
 {
 	return ulSecondCounter_WiFi;
 }
 
-unsigned long HomieDevice::GetUptimeSeconds_MQTT()
+uint32_t HomieDevice::GetUptimeSeconds_MQTT()
 {
 	return ulSecondCounter_MQTT;
 }
