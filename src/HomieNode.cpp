@@ -150,7 +150,10 @@ bool HomieProperty::Publish()
 #ifdef HOMIELIB_VERBOSE
 		csprintf("%s publishing \"%s\"\n",strFriendlyName.c_str(),strPublish.c_str());
 #endif
-		bRet=0!=pParent->pParent->mqtt.publish(strTopic.c_str(), 2, bRetained, strPublish.c_str(), strPublish.length());
+
+		pParent->pParent->mqtt.publish(strTopic.c_str(), 2, bRetained, (uint8_t *) strPublish.c_str(), strPublish.length(), 0);
+		//bRet=0!=
+		bRet=true;
 	}
 	return bRet;
 }
@@ -305,7 +308,7 @@ bool HomieProperty::SetValueConstrained(const String & strNewValue)
 	return true;
 }
 
-void HomieProperty::OnMqttMessage(char* topic, char* payload, AsyncMqttClientMessageProperties & properties, size_t len, size_t index, size_t total)
+void HomieProperty::OnMqttMessage(const char* topic, uint8_t * payload, PANGO_PROPS & properties, size_t len, size_t index, size_t total)
 {
 	if(properties.retain || total)	//squelch unused parameter warnings
 	{
@@ -315,7 +318,7 @@ void HomieProperty::OnMqttMessage(char* topic, char* payload, AsyncMqttClientMes
 	{
 
 		std::string temp;
-		temp.assign(payload,len);
+		temp.assign((const char *) payload,len);
 
 		bool bValid=SetValueConstrained(String(temp.c_str()));
 		//pProp->strValue.

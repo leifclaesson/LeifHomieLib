@@ -27,7 +27,7 @@ const char * GetHomieDataTypeText(eHomieDataType datatype);
 bool HomieDataTypeAllowsEmpty(eHomieDataType datatype);
 const char * GetDefaultForHomieDataType(eHomieDataType datatype);
 
-struct AsyncMqttClientMessageProperties;
+struct PANGO_PROPS;
 
 class HomieProperty
 {
@@ -59,7 +59,7 @@ public:
 
 	bool Publish();
 
-	void OnMqttMessage(char* topic, char* payload, AsyncMqttClientMessageProperties & properties, size_t len, size_t index, size_t total);
+	void OnMqttMessage(const char* topic, uint8_t * payload, PANGO_PROPS & properties, size_t len, size_t index, size_t total);
 
 private:
 	String strTopic;

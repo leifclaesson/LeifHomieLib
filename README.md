@@ -7,6 +7,6 @@ It doesn't have every homie feature but is well matched with openHAB.
 
 ## dependencies
 
-[AsyncMqttClient](https://github.com/marvinroger/async-mqtt-client)
+[PangolinMQTT](https://github.com/philbowles/PangolinMQTT)
 
 [ESPAsyncTCP](https://github.com/me-no-dev/ESPAsyncTCP)

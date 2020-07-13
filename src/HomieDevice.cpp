@@ -145,7 +145,7 @@ void HomieDevice::Loop()
 			{
 				iWiFiRSSI=iWiFiRSSI_Current;
 
-				Publish(String(strTopic+"/$stats/signal").c_str(), 2, true, String(iWiFiRSSI).c_str());
+				Publish( String(strTopic+"/$stats/signal").c_str(), 2, true, String(iWiFiRSSI).c_str());
 			}
 		}
 
@@ -190,6 +190,7 @@ void HomieDevice::Loop()
 			{
 				bError |= 0==Publish(String(strTopic+"/$state").c_str(), ipub_qos, true, "ready");	//re-publish ready every time we update stats
 			}
+
 
 			bError |= 0==Publish(String(strTopic+"/$stats/uptime").c_str(), 2, true, String(ulSecondCounter_Uptime).c_str());
 			bError |= 0==Publish(String(strTopic+"/$stats/uptime-wifi").c_str(), 2, true, String(ulSecondCounter_WiFi).c_str());
@@ -280,9 +281,9 @@ void HomieDevice::onConnect(bool sessionPresent)
 
 }
 
-void HomieDevice::onDisconnect(AsyncMqttClientDisconnectReason reason)
+void HomieDevice::onDisconnect(int8_t reason)
 {
-	if(reason==AsyncMqttClientDisconnectReason::TCP_DISCONNECTED)
+	if(reason==TCP_DISCONNECTED)
 	{
 	}
 	//csprintf("onDisconnect...");
@@ -300,7 +301,7 @@ void HomieDevice::onDisconnect(AsyncMqttClientDisconnectReason reason)
 	}
 }
 
-void HomieDevice::onMqttMessage(char* topic, char* payload, AsyncMqttClientMessageProperties properties, size_t len, size_t index, size_t total)
+void HomieDevice::onMqttMessage(const char* topic, uint8_t * payload, PANGO_PROPS properties, size_t len, size_t index, size_t total)
 {
 	String strTopic=topic;
 	_map_incoming::const_iterator citer=mapIncoming.find(strTopic);
@@ -610,7 +611,11 @@ void HomieDevice::DoInitialPublishing()
 
 uint16_t HomieDevice::PublishDirect(const String & topic, uint8_t qos, bool retain, const String & payload)
 {
-	return mqtt.publish(topic.c_str(), qos, retain, payload.c_str(), payload.length());
+
+	mqtt.publish(topic.c_str(), qos, retain, (uint8_t *) payload.c_str(), payload.length(), 0);
+	return 1;
+
+	//return mqtt.publish(topic.c_str(), qos, retain, payload.c_str(), payload.length());
 }
 
 bool bFailPublish=false;
@@ -622,7 +627,12 @@ uint16_t HomieDevice::Publish(const char* topic, uint8_t qos, bool retain, const
 
 	if(!bFailPublish)
 	{
-		ret=mqtt.publish(topic,qos,retain,payload,length,dup,message_id);
+		if(!length) length=strlen(payload);
+		//csprintf("publishing topic %s data %s (length %i)\n",payload,length);
+		mqtt.publish(topic, qos, retain, (uint8_t *) payload, length, false);
+		//PublishPacket pub(topic,qos,retain,payload,length(),false,0);
+		//ret=mqtt.publish(topic,qos,retain,payload,length,dup,message_id);
+		ret=true;
 	}
 
 	//csprintf("Publish %s: ret %i\n",topic,ret);
