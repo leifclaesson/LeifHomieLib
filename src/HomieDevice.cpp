@@ -57,6 +57,12 @@ void FinishInitialPublishing(HomieDevice * pSource)
 
 //#define HOMIELIB_VERBOSE
 
+void PangoError(uint8_t err1, int err2)
+{
+	csprintf("PANGO ERROR err1=%i err2=%i\n",err1,err2);
+}
+
+
 HomieDevice::HomieDevice()
 {
 }
@@ -64,6 +70,7 @@ HomieDevice::HomieDevice()
 
 void HomieDevice::Init()
 {
+	if(bInitialized) return;
 
 	strTopic=String("homie/")+strID;
 	strcpy(szWillTopic,String(strTopic+"/$state").c_str());
@@ -92,17 +99,13 @@ void HomieDevice::Init()
 	}
 
 
-	IPAddress ip;
-	ip.fromString(strMqttServerIP);
-	//ip.fromString("172.22.22.99");
-	mqtt.setServer(ip,1883);//1883
-	mqtt.setCredentials(strMqttUserName.c_str(), strMqttPassword.c_str());
-
 	mqtt.setWill(szWillTopic,2,true,"lost");
 
 	mqtt.onConnect(std::bind(&HomieDevice::onConnect, this, std::placeholders::_1));
 	mqtt.onDisconnect(std::bind(&HomieDevice::onDisconnect, this, std::placeholders::_1));
 	mqtt.onMessage(std::bind(&HomieDevice::onMqttMessage, this, std::placeholders::_1, std::placeholders::_2, std::placeholders::_3, std::placeholders::_4, std::placeholders::_5, std::placeholders::_6));
+
+	mqtt.onError(PangoError);
 
 	bSendError=false;
 
@@ -176,6 +179,18 @@ void HomieDevice::Loop()
 
 	if(mqtt.connected())
 	{
+		if(!bEnableMQTT)
+		{
+			if(bWasConnected)
+			{
+				bWasConnected=false;
+				Publish(String(strTopic+"/$state").c_str(), 1, true, "disconnected");
+				mqtt.disconnect(false);
+			}
+			return;
+		}
+
+		bWasConnected=true;
 
 		DoInitialPublishing();
 
@@ -229,33 +244,45 @@ void HomieDevice::Loop()
 
 		ulHomieStatsTimestamp=millis()-1000000;
 
-		if(!bConnecting)
+		if(bEnableMQTT)
 		{
 
-			//csprintf("millis()-ulLastReconnect=%i  interval=%i\n",millis()-ulLastReconnect,interval);
-
-			if(!ulLastReconnect || (millis()-ulLastReconnect)>GetReconnectInterval())
+			if(!bConnecting)
 			{
 
-				csprintf("Connecting to MQTT server %s...\n",strMqttServerIP.c_str());
-				bConnecting=true;
-				bSendError=false;
-				bInitialPublishingDone=false;
+				//csprintf("millis()-ulLastReconnect=%i  interval=%i\n",millis()-ulLastReconnect,interval);
 
-				ulConnectTimestamp=millis();
-				mqtt.connect();
+				if(!ulLastReconnect || (millis()-ulLastReconnect)>GetReconnectInterval())
+				{
+					csprintf("x");
+
+					IPAddress ip;
+					ip.fromString(strMqttServerIP);
+					//ip.fromString("172.22.22.99");
+					mqtt.setServer(ip,1883);//1883
+					mqtt.setCredentials(strMqttUserName.c_str(), strMqttPassword.c_str());
+
+					csprintf("Connecting to MQTT server %s...\n",strMqttServerIP.c_str());
+					bConnecting=true;
+					bSendError=false;
+					bInitialPublishingDone=false;
+
+					ulConnectTimestamp=millis();
+
+					mqtt.connect();
+				}
 			}
-		}
-		else
-		{
-			//if we're still not connected after a minute, try again
-			if(!ulConnectTimestamp || (millis()-ulConnectTimestamp)>60000)
+			else
 			{
-				csprintf("Reconnect needed, dangling flag\n");
-				mqtt.disconnect(true);
-				bConnecting=false;
-			}
+				//if we're still not connected after a minute, try again
+				if(!ulConnectTimestamp || (millis()-ulConnectTimestamp)>60000)
+				{
+					csprintf("Reconnect needed, dangling flag\n");
+					mqtt.disconnect(true);
+					bConnecting=false;
+				}
 
+			}
 		}
 	}
 
@@ -293,11 +320,18 @@ void HomieDevice::onDisconnect(int8_t reason)
 		ulMqttReconnectCount++;
 		bConnecting=false;
 		//csprintf("onDisconnect...   reason %i.. lr=%lu\n",reason,ulLastReconnect);
-		csprintf("MQTT server connection failed. Retrying in %lums\n",GetReconnectInterval());
+		//csprintf("MQTT server connection failed. Retrying in %lums\n",GetReconnectInterval());
 	}
 	else
 	{
-		csprintf("MQTT server connection lost\n");
+		if(!bEnableMQTT)
+		{
+			csprintf("MQTT server disconnected\n");
+		}
+		else
+		{
+			csprintf("MQTT server connection lost\n");
+		}
 	}
 }
 
@@ -622,6 +656,8 @@ bool bFailPublish=false;
 
 uint16_t HomieDevice::Publish(const char* topic, uint8_t qos, bool retain, const char* payload, size_t length, bool dup, uint16_t message_id)
 {
+	(void)(dup);
+	(void)(message_id);
 	if(!IsConnected()) return 0;
 	uint16_t ret=0;
 
@@ -812,3 +848,4 @@ unsigned long HomieDevice::GetReconnectInterval()
 	else if(ulMqttReconnectCount>=5) interval=10000;
 	return interval;
 }
+

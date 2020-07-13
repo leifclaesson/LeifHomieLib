@@ -35,6 +35,7 @@ public:
 
 	bool bRapidUpdateRSSI=false;
 
+	bool IsInitialized() { return bInitialized; }
 
 	void Init();
 	void Quit();
@@ -44,6 +45,7 @@ public:
 	HomieNode * NewNode();
 
 	bool IsConnected();
+	bool IsConnecting() { return bConnecting; };
 
 	uint16_t PublishDirect(const String & topic, uint8_t qos, bool retain, const String & payload);
 
@@ -52,7 +54,12 @@ public:
 	unsigned long GetUptimeSeconds_WiFi();
 	unsigned long GetUptimeSeconds_MQTT();
 
+	void SetEnableMQTT(bool bEnable) { this->bEnableMQTT=bEnable; }
+
 private:
+
+	bool bEnableMQTT=true;
+	bool bWasConnected=false;
 
 	uint16_t Publish(const char* topic, uint8_t qos, bool retain, const char* payload = nullptr, size_t length = 0, bool dup = false, uint16_t message_id = 0);
 
