@@ -124,6 +124,7 @@ void HomieProperty::PublishDefault()
 bool HomieProperty::Publish()
 {
 	if(!bInitialized) return false;
+	if(!pParent->pParent->bEnableMQTT) return false;
 	if(bStandardMQTT) return false;
 
 	bool bRet=false;
