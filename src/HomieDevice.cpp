@@ -2,7 +2,7 @@
 #include "HomieNode.h"
 void HomieLibDebugPrint(const char * szText);
 
-#define csprintf(...) { char szTemp[256]; sprintf(szTemp,__VA_ARGS__ ); HomieLibDebugPrint(szTemp); }
+#define csprintf(...) { char szTemp[256]; snprintf(szTemp,255,__VA_ARGS__); szTemp[255]=0; HomieLibDebugPrint(szTemp); }
 
 
 #if defined(ARDUINO_ARCH_ESP8266)
