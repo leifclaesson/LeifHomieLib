@@ -166,8 +166,26 @@ void HomieDevice::Loop()
 
 	if(!bEvenDeciSecond) return;
 
+	static uint32_t ulFreeHeap=0xFFFFFFF;
+#if defined(ARDUINO_ARCH_ESP8266)
+	static uint16_t ulFreeHeapContig=0xFFFF;
+#else
+	static uint32_t ulFreeHeapContig=0xFFFFFFF;
+#endif
+	static uint8_t uHeapFrag=0;
+
 	if(bEvenSecond)
 	{
+		ulFreeHeap=min(ulFreeHeap,ESP.getFreeHeap());
+#if defined(ARDUINO_ARCH_ESP8266)
+		ulFreeHeapContig=min(ulFreeHeapContig,ESP.getMaxFreeBlockSize());
+#else
+		ulFreeHeapContig=min(ulFreeHeapContig,ESP.getMaxAllocHeap());
+#endif
+
+
+		uHeapFrag=max(uHeapFrag,ESP.getHeapFragmentation());
+
 	}
 
 	if(WiFi.status() != WL_CONNECTED)
@@ -211,6 +229,20 @@ void HomieDevice::Loop()
 			bError |= 0==Publish(String(strTopic+"/$stats/uptime-wifi").c_str(), 2, true, String(ulSecondCounter_WiFi).c_str());
 			bError |= 0==Publish(String(strTopic+"/$stats/uptime-mqtt").c_str(), 2, true, String(ulSecondCounter_MQTT).c_str());
 			bError |= 0==Publish(String(strTopic+"/$stats/signal").c_str(), 2, true, String(WiFi.RSSI()).c_str());
+			bError |= 0==Publish(String(strTopic+"/$stats/freeheap").c_str(), 2, true, String(ulFreeHeap).c_str());
+
+			bError |= 0==Publish(String(strTopic+"/$stats/freeheap_contiguous").c_str(), 2, true, String(ulFreeHeapContig).c_str());
+
+			bError |= 0==Publish(String(strTopic+"/$stats/heapfrag").c_str(), 2, true, String(uHeapFrag).c_str());
+
+			ulFreeHeap=0xFFFFFFF;
+#if defined(ARDUINO_ARCH_ESP8266)
+			ulFreeHeapContig=0xFFFF;
+#else
+			ulFreeHeapContig=0xFFFFFFF;
+#endif
+			uHeapFrag=0;
+
 
 			if(bError)
 			{
@@ -443,7 +475,7 @@ void HomieDevice::DoInitialPublishing()
 	{
 		bool bError=false;
 
-		bError |= 0==Publish(String(strTopic+"/$stats").c_str(), ipub_qos, true, "uptime,signal,uptime-wifi,uptime-mqtt");
+		bError |= 0==Publish(String(strTopic+"/$stats").c_str(), ipub_qos, true, "uptime,signal,uptime-wifi,uptime-mqtt,freeheap,freeheap_contiguous,heapfrag");
 		bError |= 0==Publish(String(strTopic+"/$stats/interval").c_str(), ipub_qos, true, "60");
 
 		String strNodes;
