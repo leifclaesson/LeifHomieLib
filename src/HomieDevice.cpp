@@ -169,22 +169,22 @@ void HomieDevice::Loop()
 	static uint32_t ulFreeHeap=0xFFFFFFF;
 #if defined(ARDUINO_ARCH_ESP8266)
 	static uint16_t ulFreeHeapContig=0xFFFF;
+	static uint8_t uHeapFrag=0;
 #else
 	static uint32_t ulFreeHeapContig=0xFFFFFFF;
 #endif
-	static uint8_t uHeapFrag=0;
 
 	if(bEvenSecond)
 	{
 		ulFreeHeap=min(ulFreeHeap,ESP.getFreeHeap());
 #if defined(ARDUINO_ARCH_ESP8266)
 		ulFreeHeapContig=min(ulFreeHeapContig,ESP.getMaxFreeBlockSize());
+		uHeapFrag=max(uHeapFrag,ESP.getHeapFragmentation());
 #else
 		ulFreeHeapContig=min(ulFreeHeapContig,ESP.getMaxAllocHeap());
 #endif
 
 
-		uHeapFrag=max(uHeapFrag,ESP.getHeapFragmentation());
 
 	}
 
@@ -233,15 +233,15 @@ void HomieDevice::Loop()
 
 			bError |= 0==Publish(String(strTopic+"/$stats/freeheap_contiguous").c_str(), 2, true, String(ulFreeHeapContig).c_str());
 
-			bError |= 0==Publish(String(strTopic+"/$stats/heapfrag").c_str(), 2, true, String(uHeapFrag).c_str());
 
 			ulFreeHeap=0xFFFFFFF;
 #if defined(ARDUINO_ARCH_ESP8266)
 			ulFreeHeapContig=0xFFFF;
+			bError |= 0==Publish(String(strTopic+"/$stats/heapfrag").c_str(), 2, true, String(uHeapFrag).c_str());
+			uHeapFrag=0;
 #else
 			ulFreeHeapContig=0xFFFFFFF;
 #endif
-			uHeapFrag=0;
 
 
 			if(bError)
