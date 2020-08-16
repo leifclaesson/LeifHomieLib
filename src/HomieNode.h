@@ -57,6 +57,8 @@ public:
 	void SetValue(const String & strNewValue);
 	void SetBool(bool bValue);
 
+	void DoCallback();
+
 	bool Publish();
 
 	void OnMqttMessage(const char* topic, uint8_t * payload, PANGO_PROPS & properties, size_t len, size_t index, size_t total);
@@ -72,7 +74,6 @@ private:
 
 	friend class HomieDevice;
 	friend class HomieNode;
-	void DoCallback();
 
 	bool SetValueConstrained(const String & strNewValue);
 

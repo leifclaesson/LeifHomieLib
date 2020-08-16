@@ -143,16 +143,22 @@ bool HomieProperty::Publish()
 	if(!pParent->pParent->mqtt.connected())
 	{
 #ifdef HOMIELIB_VERBOSE
-		csprintf("%s can't publish \"%s\" because not connected\n",strFriendlyName.c_str(),strPublish.c_str());
+		csprintf("%s can't publish \"%s\" = no conn. heap=%u\n",strFriendlyName.c_str(),strPublish.c_str(),ESP.getFreeHeap());
 #endif
 	}
 	else
 	{
 #ifdef HOMIELIB_VERBOSE
-		csprintf("%s publishing \"%s\"\n",strFriendlyName.c_str(),strPublish.c_str());
+		csprintf("%s publishing \"%s\"... heap=%u...",strFriendlyName.c_str(),strPublish.c_str(),ESP.getFreeHeap());
 #endif
 
+		uint32_t free_before=ESP.getFreeHeap();
 		pParent->pParent->mqtt.publish(strTopic.c_str(), 2, bRetained, (uint8_t *) strPublish.c_str(), strPublish.length(), 0);
+		uint32_t free_after=ESP.getFreeHeap();
+
+#ifdef HOMIELIB_VERBOSE
+		csprintf("done. heap used: %i\n",(int32_t) (free_before-free_after));
+#endif
 		//bRet=0!=
 		bRet=true;
 	}
