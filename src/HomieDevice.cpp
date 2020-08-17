@@ -515,8 +515,8 @@ void HomieDevice::DoInitialPublishing()
 			if(bDebug) csprintf("NODE %i: %s\n",i,node.strFriendlyName.c_str());
 #endif
 
-			bError |= 0==Publish(String(node.strTopic+"/$name").c_str(), ipub_qos, true, node.strFriendlyName.c_str());
-			bError |= 0==Publish(String(node.strTopic+"/$type").c_str(), ipub_qos, true, node.strType.c_str());
+			bError |= 0==Publish(String(node.GetTopic()+"/$name").c_str(), ipub_qos, true, node.strFriendlyName.c_str());
+			bError |= 0==Publish(String(node.GetTopic()+"/$type").c_str(), ipub_qos, true, node.strType.c_str());
 
 			String strProperties;
 			for(size_t j=0;j<node.vecProperty.size();j++)
@@ -529,7 +529,7 @@ void HomieDevice::DoInitialPublishing()
 			if(bDebug) csprintf("NODE %i: %s has properties %s\n",i,node.strFriendlyName.c_str(),strProperties.c_str());
 #endif
 
-			bError |= 0==Publish(String(node.strTopic+"/$properties").c_str(), ipub_qos, true, strProperties.c_str());
+			bError |= 0==Publish(String(node.GetTopic()+"/$properties").c_str(), ipub_qos, true, strProperties.c_str());
 
 			if(bError)
 			{
@@ -572,45 +572,45 @@ void HomieDevice::DoInitialPublishing()
 				if(bDebug) csprintf("NODE %i: %s property %s\n",i,node.strFriendlyName.c_str(),prop.strFriendlyName.c_str());
 #endif
 
-				if(prop.bStandardMQTT)
+				if(prop.GetIsStandardMQTT())
 				{
 	#ifdef HOMIELIB_VERBOSE
-					csprintf("SUBSCRIBING to MQTT topic %s\n",prop.strTopic.c_str());
+					csprintf("SUBSCRIBING to MQTT topic %s\n",prop.GetTopic().c_str());
 	#endif
-					bError |= 0==mqtt.subscribe(prop.strTopic.c_str(), sub_qos);
-					mapIncoming[prop.strTopic]=&prop;
+					bError |= 0==mqtt.subscribe(prop.GetTopic().c_str(), sub_qos);
+					mapIncoming[prop.GetTopic()]=&prop;
 				}
 				else
 				{
 
-					bError |= 0==Publish(String(prop.strTopic+"/$name").c_str(), ipub_qos, true, prop.strFriendlyName.c_str());
-					bError |= 0==Publish(String(prop.strTopic+"/$settable").c_str(), ipub_qos, true, prop.bSettable?"true":"false");
-					bError |= 0==Publish(String(prop.strTopic+"/$retained").c_str(), ipub_qos, true, (prop.bRetained || prop.bFakeRetained)?"true":"false");
-					bError |= 0==Publish(String(prop.strTopic+"/$datatype").c_str(), ipub_qos, true, GetHomieDataTypeText(prop.datatype));
-					if(prop.strUnit.length())
+					bError |= 0==Publish(String(prop.GetTopic()+"/$name").c_str(), ipub_qos, true, prop.strFriendlyName.c_str());
+					bError |= 0==Publish(String(prop.GetTopic()+"/$settable").c_str(), ipub_qos, true, prop.GetSettable()?"true":"false");
+					bError |= 0==Publish(String(prop.GetTopic()+"/$retained").c_str(), ipub_qos, true, (prop.GetRetained() || prop.GetFakeRetained())?"true":"false");
+					bError |= 0==Publish(String(prop.GetTopic()+"/$datatype").c_str(), ipub_qos, true, GetHomieDataTypeText((eHomieDataType) prop.datatype));
+					if(prop.pstrUnit && prop.pstrUnit->length())
 					{
-						bError |= 0==Publish(String(prop.strTopic+"/$unit").c_str(), ipub_qos, true, prop.strUnit.c_str());
+						bError |= 0==Publish(String(prop.GetTopic()+"/$unit").c_str(), ipub_qos, true, prop.pstrUnit->c_str());
 					}
 					if(prop.strFormat.length())
 					{
-						bError |= 0==Publish(String(prop.strTopic+"/$format").c_str(), ipub_qos, true, prop.strFormat.c_str());
+						bError |= 0==Publish(String(prop.GetTopic()+"/$format").c_str(), ipub_qos, true, prop.strFormat.c_str());
 					}
 
-					if(prop.bSettable)
+					if(prop.GetSettable())
 					{
-						mapIncoming[prop.strTopic]=&prop;
-						mapIncoming[prop.strSetTopic]=&prop;
-						if(prop.bRetained)
+						mapIncoming[prop.GetTopic()]=&prop;
+						mapIncoming[prop.GetSetTopic()]=&prop;
+						if(prop.GetRetained())
 						{
 	#ifdef HOMIELIB_VERBOSE
-							csprintf("SUBSCRIBING to %s\n",prop.strTopic.c_str());
+							csprintf("SUBSCRIBING to %s\n",prop.GetTopic().c_str());
 	#endif
-							bError |= 0==mqtt.subscribe(prop.strTopic.c_str(), sub_qos);
+							bError |= 0==mqtt.subscribe(prop.GetTopic().c_str(), sub_qos);
 						}
 	#ifdef HOMIELIB_VERBOSE
-						csprintf("SUBSCRIBING to %s\n",prop.strSetTopic.c_str());
+						csprintf("SUBSCRIBING to %s\n",prop.GetSetTopic().c_str());
 	#endif
-						bError |= 0==mqtt.subscribe(prop.strSetTopic.c_str(), sub_qos);
+						bError |= 0==mqtt.subscribe(prop.GetSetTopic().c_str(), sub_qos);
 					}
 					else
 					{

@@ -7,7 +7,7 @@ void HomieLibDebugPrint(const char * szText);
 
 const char * GetHomieDataTypeText(eHomieDataType datatype)
 {
-	switch(datatype)
+	switch((eHomieDataType) datatype)
 	{
 	default:
 		return "INVALID";
@@ -28,7 +28,7 @@ const char * GetHomieDataTypeText(eHomieDataType datatype)
 
 const char * GetDefaultForHomieDataType(eHomieDataType datatype)
 {
-	switch(datatype)
+	switch((eHomieDataType) datatype)
 	{
 	default:
 		return "uninitialized";
@@ -47,7 +47,7 @@ const char * GetDefaultForHomieDataType(eHomieDataType datatype)
 
 bool HomieDataTypeAllowsEmpty(eHomieDataType datatype)
 {
-	switch(datatype)
+	switch((eHomieDataType) datatype)
 	{
 	case homieString:
 		return true;
@@ -59,45 +59,82 @@ bool HomieDataTypeAllowsEmpty(eHomieDataType datatype)
 
 HomieProperty::HomieProperty()
 {
-	user1=0;
-	user2=0;
+//	user1=0;
+//	user2=0;
+	SetRetained(true);
+	SetPublishEmptyString(true);
 }
 
 void HomieProperty::SetStandardMQTT(const String & strMqttTopic)
 {
 	if(bInitialized) return;
 
-	bStandardMQTT=true;
-	bRetained=false;
-	bSettable=true;
-	strTopic=strMqttTopic;
-	strSetTopic="";
+	SetIsStandardMQTT(true);
+	SetRetained(false);
+	SetSettable(true);
+	strID=strMqttTopic;
+	//strSetTopic="";
 
 }
 
 void HomieProperty::Init()
 {
-	if(!bStandardMQTT)
+/*	if(!GetIsStandardMQTT())
 	{
 		strTopic=pParent->strTopic+"/"+strID;
 		strSetTopic=strTopic+"/set";
-	}
+	}*/
 	bInitialized=true;
+
 }
 
 void HomieProperty::DoCallback()
 {
-	for(size_t i=0;i<vecCallback.size();i++)
+	if(pVecCallback)
 	{
-		vecCallback[i](this);
+		for(size_t i=0;i<pVecCallback->size();i++)
+		{
+			(*pVecCallback)[i](this);
+		}
 	}
 
 }
 
 void HomieProperty::AddCallback(HomiePropertyCallback cb)
 {
-	vecCallback.push_back(cb);
+	if(!pVecCallback)
+	{
+		pVecCallback=new std::vector<HomiePropertyCallback>;
+	}
+	pVecCallback->push_back(cb);
 }
+
+void HomieProperty::SetUnit(const char * szUnit)
+{
+	if(szUnit && strlen(szUnit))
+	{
+		if(!pstrUnit)
+		{
+			pstrUnit=new String;
+		}
+		*pstrUnit=szUnit;
+	}
+	else
+	{
+		if(pstrUnit)
+		{
+			delete pstrUnit;
+			pstrUnit=NULL;
+		}
+	}
+}
+
+String HomieProperty::GetUnit()
+{
+	if(pstrUnit) return *pstrUnit;
+	return String();
+}
+
 
 const String & HomieProperty::GetValue()
 {
@@ -106,15 +143,15 @@ const String & HomieProperty::GetValue()
 
 void HomieProperty::PublishDefault()
 {
-	if(bSettable && bRetained && !bReceivedRetained && !bStandardMQTT)
+	if(GetSettable() && GetRetained() && !GetReceivedRetained() && !GetIsStandardMQTT())
 	{
-		bReceivedRetained=true;
+		SetReceivedRetained(true);
 		if(strValue.length())
 		{
 #ifdef HOMIELIB_VERBOSE
-			csprintf("%s didn't receive initial value for base topic %s so unsubscribe and publish default.\n",strFriendlyName.c_str(),strTopic.c_str());
+			csprintf("%s didn't receive initial value for base topic %s so unsubscribe and publish default.\n",strFriendlyName.c_str(),GetTopic().c_str());
 #endif
-			pParent->pParent->mqtt.unsubscribe(strTopic.c_str());
+			pParent->pParent->mqtt.unsubscribe(GetTopic().c_str());
 			Publish();
 		}
 	}
@@ -125,16 +162,16 @@ bool HomieProperty::Publish()
 {
 	if(!bInitialized) return false;
 	if(!pParent->pParent->bEnableMQTT) return false;
-	if(bStandardMQTT) return false;
+	if(GetIsStandardMQTT()) return false;
 
 	bool bRet=false;
 	String strPublish=strValue;
 
-	if(!strPublish.length() && !bPublishEmptyString) return true;
+	if(!strPublish.length() && !GetPublishEmptyString()) return true;
 
-	if(!strPublish.length() && !HomieDataTypeAllowsEmpty(datatype))
+	if(!strPublish.length() && !HomieDataTypeAllowsEmpty((eHomieDataType) datatype))
 	{
-		strPublish=GetDefaultForHomieDataType(datatype);
+		strPublish=GetDefaultForHomieDataType((eHomieDataType) datatype);
 #ifdef HOMIELIB_VERBOSE
 		csprintf("Empty value for %s encountered, substituting default. ",strID.c_str());
 #endif
@@ -153,7 +190,7 @@ bool HomieProperty::Publish()
 #endif
 
 		uint32_t free_before=ESP.getFreeHeap();
-		pParent->pParent->mqtt.publish(strTopic.c_str(), 2, bRetained, (uint8_t *) strPublish.c_str(), strPublish.length(), 0);
+		pParent->pParent->mqtt.publish(GetTopic().c_str(), 2, GetRetained(), (uint8_t *) strPublish.c_str(), strPublish.length(), 0);
 		uint32_t free_after=ESP.getFreeHeap();
 
 #ifdef HOMIELIB_VERBOSE
@@ -212,7 +249,7 @@ bool HomieProperty::ValidateFormat_Double(double & min, double & max)
 
 bool HomieProperty::SetValueConstrained(const String & strNewValue)
 {
-	switch(datatype)
+	switch((eHomieDataType) datatype)
 	{
 	default:
 		strValue=strNewValue;
@@ -334,13 +371,13 @@ void HomieProperty::OnMqttMessage(const char* topic, uint8_t * payload, PANGO_PR
 			DoCallback();
 		}
 
-		if(bRetained && !strcmp(topic,strTopic.c_str()) && !bStandardMQTT)
+		if(GetRetained() && !strcmp(topic,GetTopic().c_str()) && !GetIsStandardMQTT())
 		{
 #ifdef HOMIELIB_VERBOSE
-			csprintf("%s received initial value for base topic %s. Unsubscribing.\n",strFriendlyName.c_str(),strTopic.c_str());
+			csprintf("%s received initial value for base topic %s. Unsubscribing.\n",strFriendlyName.c_str(),GetTopic().c_str());
 #endif
 			pParent->pParent->mqtt.unsubscribe(topic);
-			bReceivedRetained=true;
+			SetReceivedRetained(true);
 		}
 		else
 		{
@@ -354,6 +391,19 @@ void HomieProperty::OnMqttMessage(const char* topic, uint8_t * payload, PANGO_PR
 
 }
 
+String HomieProperty::GetTopic()
+{
+	if(GetIsStandardMQTT()) return strID;
+	return pParent->GetTopic()+"/"+strID;
+}
+
+String HomieProperty::GetSetTopic()
+{
+	if(GetIsStandardMQTT()) return strID;
+	return pParent->GetTopic()+"/"+strID+"/set";
+}
+
+
 
 HomieNode::HomieNode()
 {
@@ -363,13 +413,17 @@ HomieNode::HomieNode()
 void HomieNode::Init()
 {
 
-	strTopic=pParent->strTopic+"/"+strID;
+//	strTopic=pParent->strTopic+"/"+strID;
 	for(size_t a=0;a<vecProperty.size();a++)
 	{
 		vecProperty[a]->Init();
 	}
 }
 
+String HomieNode::GetTopic()
+{
+	return pParent->strTopic+"/"+strID;
+}
 
 void HomieNode::PublishDefaults()
 {
@@ -386,4 +440,20 @@ HomieProperty * HomieNode::NewProperty()
 	ret->pParent=this;
 	return ret;
 }
+
+void HomieProperty::SetSettable(bool bEnable){if(bEnable) flags |= 0x1; else flags &= 0xff-0x1;}
+void HomieProperty::SetRetained(bool bEnable){if(bEnable) flags |= 0x2; else flags &= 0xff-0x2;}
+void HomieProperty::SetFakeRetained(bool bEnable){if(bEnable) flags |= 0x4; else flags &= 0xff-0x4;}
+void HomieProperty::SetPublishEmptyString(bool bEnable){if(bEnable) flags |= 0x8; else flags &= 0xff-0x8;}
+void HomieProperty::SetInitialized(bool bEnable){if(bEnable) flags |= 0x10; else flags &= 0xff-0x10;}
+void HomieProperty::SetReceivedRetained(bool bEnable){if(bEnable) flags |= 0x20; else flags &= 0xff-0x20;}
+void HomieProperty::SetIsStandardMQTT(bool bEnable){if(bEnable) flags |= 0x40; else flags &= 0xff-0x40;}
+
+bool HomieProperty::GetSettable(){return (flags & 0x1)!=0;}
+bool HomieProperty::GetRetained(){return (flags & 0x2)!=0;}
+bool HomieProperty::GetFakeRetained(){return (flags & 0x4)!=0;}
+bool HomieProperty::GetPublishEmptyString(){return (flags & 0x8)!=0;}
+bool HomieProperty::GetInitialized(){return (flags & 0x10)!=0;}
+bool HomieProperty::GetReceivedRetained(){return (flags & 0x20)!=0;}
+bool HomieProperty::GetIsStandardMQTT(){return (flags & 0x40)!=0;}
 

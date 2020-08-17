@@ -36,17 +36,30 @@ public:
 
 	void SetStandardMQTT(const String & strMqttTopic);	//call before init to subscribe to a standard MQTT topic. Receive only.
 
-	int user1;
-	int user2;
+	//int user1;
+	//int user2;
+
+	void SetUnit(const char * szUnit);
+	String GetUnit();
 
 	String strID;
 	String strFriendlyName;
-	bool bSettable=false;
-	bool bRetained=true;
-	bool bFakeRetained=false;
-	bool bPublishEmptyString=true;
-	String strUnit;
-	eHomieDataType datatype=homieString;
+
+	void SetSettable(bool bEnable);
+	void SetRetained(bool bEnable);
+	void SetFakeRetained(bool bEnable);
+	void SetPublishEmptyString(bool bEnable);
+
+	bool GetSettable();
+	bool GetRetained();
+	bool GetFakeRetained();
+	bool GetPublishEmptyString();
+
+//	bool bSettable=false;
+//	bool bRetained=true;
+//	bool bFakeRetained=false;
+//	bool bPublishEmptyString=true;
+	//String strUnit;
 	String strFormat;
 
 	void Init();
@@ -63,12 +76,18 @@ public:
 
 	void OnMqttMessage(const char* topic, uint8_t * payload, PANGO_PROPS & properties, size_t len, size_t index, size_t total);
 
+
+
+	String GetTopic();
+	String GetSetTopic();
+
 private:
-	String strTopic;
-	String strSetTopic;
+//	String strTopic;
+	//String strSetTopic;
+	String * pstrUnit=NULL;
 	HomieNode * pParent;
 	String strValue;
-	std::vector<HomiePropertyCallback> vecCallback;
+	std::vector<HomiePropertyCallback> * pVecCallback=NULL;
 
 	bool bInitialized=false;
 
@@ -82,9 +101,22 @@ private:
 
 	void PublishDefault();
 
-	bool bReceivedRetained=false;
+	//bool bReceivedRetained=false;
 
-	bool bStandardMQTT=false;
+	//bool bStandardMQTT=false;
+
+
+	void SetInitialized(bool bEnable);
+	void SetReceivedRetained(bool bEnable);
+	void SetIsStandardMQTT(bool bEnable);
+	bool GetInitialized();
+	bool GetReceivedRetained();
+	bool GetIsStandardMQTT();
+
+public:
+	uint8_t datatype=homieString;	/* eHomieDataType */
+private:
+	uint8_t flags=0;
 
 };
 
@@ -101,6 +133,7 @@ public:
 
 	HomieProperty * NewProperty();
 
+	String GetTopic();
 
 private:
 
@@ -110,7 +143,7 @@ private:
 	friend class HomieDevice;
 	friend class HomieProperty;
 	HomieDevice * pParent;
-	String strTopic;
+//	String strTopic;
 
 	void PublishDefaults();
 
