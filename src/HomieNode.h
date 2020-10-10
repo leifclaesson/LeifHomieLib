@@ -3,6 +3,8 @@
 
 #include <functional>
 
+#include "Config.h"
+
 class HomieProperty;
 class HomieNode;
 class HomieDevice;
@@ -27,7 +29,11 @@ const char * GetHomieDataTypeText(eHomieDataType datatype);
 bool HomieDataTypeAllowsEmpty(eHomieDataType datatype);
 const char * GetDefaultForHomieDataType(eHomieDataType datatype);
 
+#ifdef USE_PANGOLIN
 struct PANGO_PROPS;
+#else
+struct AsyncMqttClientMessageProperties;
+#endif
 
 class HomieProperty
 {
@@ -74,7 +80,12 @@ public:
 
 	bool Publish();
 
+
+#ifdef USE_PANGOLIN
 	void OnMqttMessage(const char* topic, uint8_t * payload, PANGO_PROPS & properties, size_t len, size_t index, size_t total);
+#else
+	void OnMqttMessage(char* topic, char* payload, AsyncMqttClientMessageProperties & properties, size_t len, size_t index, size_t total);
+#endif
 
 
 

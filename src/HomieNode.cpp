@@ -190,7 +190,11 @@ bool HomieProperty::Publish()
 #endif
 
 		uint32_t free_before=ESP.getFreeHeap();
+#ifdef USE_PANGOLIN
 		pParent->pParent->mqtt.publish(GetTopic().c_str(), 2, GetRetained(), (uint8_t *) strPublish.c_str(), strPublish.length(), 0);
+#else
+		pParent->pParent->mqtt.publish( GetTopic().c_str(), 0, GetRetained(), strPublish.c_str(), strPublish.length());
+#endif
 		uint32_t free_after=ESP.getFreeHeap();
 
 #ifdef HOMIELIB_VERBOSE
@@ -352,7 +356,12 @@ bool HomieProperty::SetValueConstrained(const String & strNewValue)
 	return true;
 }
 
+
+#ifdef USE_PANGOLIN
 void HomieProperty::OnMqttMessage(const char* topic, uint8_t * payload, PANGO_PROPS & properties, size_t len, size_t index, size_t total)
+#else
+void HomieProperty::OnMqttMessage(char* topic, char* payload, AsyncMqttClientMessageProperties & properties, size_t len, size_t index, size_t total)
+#endif
 {
 	if(properties.retain || total)	//squelch unused parameter warnings
 	{

@@ -57,10 +57,12 @@ void FinishInitialPublishing(HomieDevice * pSource)
 
 //#define HOMIELIB_VERBOSE
 
+#ifdef USE_PANGOLIN
 void PangoError(uint8_t err1, int err2)
 {
 	csprintf("PANGO ERROR err1=%i err2=%i\n",err1,err2);
 }
+#endif
 
 
 HomieDevice::HomieDevice()
@@ -105,7 +107,9 @@ void HomieDevice::Init()
 	mqtt.onDisconnect(std::bind(&HomieDevice::onDisconnect, this, std::placeholders::_1));
 	mqtt.onMessage(std::bind(&HomieDevice::onMqttMessage, this, std::placeholders::_1, std::placeholders::_2, std::placeholders::_3, std::placeholders::_4, std::placeholders::_5, std::placeholders::_6));
 
+#ifdef USE_PANGOLIN
 	mqtt.onError(PangoError);
+#endif
 
 	bSendError=false;
 
@@ -340,11 +344,20 @@ void HomieDevice::onConnect(bool sessionPresent)
 
 }
 
+
+#ifdef USE_PANGOLIN
 void HomieDevice::onDisconnect(int8_t reason)
 {
 	if(reason==TCP_DISCONNECTED)
 	{
 	}
+#else
+void HomieDevice::onDisconnect(AsyncMqttClientDisconnectReason reason)
+{
+	if(reason==AsyncMqttClientDisconnectReason::TCP_DISCONNECTED)
+	{
+	}
+#endif
 	//csprintf("onDisconnect...");
 	if(bConnecting)
 	{
@@ -367,7 +380,11 @@ void HomieDevice::onDisconnect(int8_t reason)
 	}
 }
 
+#ifdef USE_PANGOLIN
 void HomieDevice::onMqttMessage(const char* topic, uint8_t * payload, PANGO_PROPS properties, size_t len, size_t index, size_t total)
+#else
+void HomieDevice::onMqttMessage(char* topic, char* payload, AsyncMqttClientMessageProperties properties, size_t len, size_t index, size_t total)
+#endif
 {
 	String strTopic=topic;
 	_map_incoming::const_iterator citer=mapIncoming.find(strTopic);
@@ -678,8 +695,12 @@ void HomieDevice::DoInitialPublishing()
 uint16_t HomieDevice::PublishDirect(const String & topic, uint8_t qos, bool retain, const String & payload)
 {
 
+#ifdef USE_PANGOLIN
 	mqtt.publish(topic.c_str(), qos, retain, (uint8_t *) payload.c_str(), payload.length(), 0);
 	return 1;
+#else
+	return mqtt.publish(topic.c_str(), qos, retain, payload.c_str(), payload.length());
+#endif
 
 	//return mqtt.publish(topic.c_str(), qos, retain, payload.c_str(), payload.length());
 }
@@ -697,7 +718,11 @@ uint16_t HomieDevice::Publish(const char* topic, uint8_t qos, bool retain, const
 	{
 		if(!length) length=strlen(payload);
 		//csprintf("publishing topic %s data %s (length %i)\n",payload,length);
+#ifdef USE_PANGOLIN
 		mqtt.publish(topic, qos, retain, (uint8_t *) payload, length, false);
+#else
+		ret=mqtt.publish(topic,qos,retain,payload,length,dup,message_id);
+#endif
 		//PublishPacket pub(topic,qos,retain,payload,length(),false,0);
 		//ret=mqtt.publish(topic,qos,retain,payload,length,dup,message_id);
 		ret=true;
