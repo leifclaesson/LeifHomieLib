@@ -189,15 +189,17 @@ bool HomieProperty::Publish()
 		csprintf("%s publishing \"%s\"... heap=%u...",strFriendlyName.c_str(),strPublish.c_str(),ESP.getFreeHeap());
 #endif
 
+#ifdef HOMIELIB_VERBOSE
 		uint32_t free_before=ESP.getFreeHeap();
+#endif
 #ifdef USE_PANGOLIN
 		pParent->pParent->mqtt.publish(GetTopic().c_str(), 2, GetRetained(), (uint8_t *) strPublish.c_str(), strPublish.length(), 0);
 #else
 		pParent->pParent->mqtt.publish( GetTopic().c_str(), 0, GetRetained(), strPublish.c_str(), strPublish.length());
 #endif
-		uint32_t free_after=ESP.getFreeHeap();
 
 #ifdef HOMIELIB_VERBOSE
+		uint32_t free_after=ESP.getFreeHeap();
 		csprintf("done. heap used: %i\n",(int32_t) (free_before-free_after));
 #endif
 		//bRet=0!=

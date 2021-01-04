@@ -848,9 +848,9 @@ void HSVtoRGB(float fHueIn, float fSatIn, float fBriteIn, float & fRedOut, float
 
 bool HomieParseHSV(const char * in, uint32_t & rgb)
 {
-	int h, s, v;
+	float h, s, v;
 
-	if (sscanf(in, "%d,%d,%d", &h, &s, &v) == 3)
+	if (sscanf(in, "%f,%f,%f", &h, &s, &v) == 3)
 	{
 		float fR, fG, fB;
 
@@ -867,6 +867,7 @@ bool HomieParseHSV(const char * in, uint32_t & rgb)
 		rgb=(r<<16) + (g<<8) + (b<<0);
 		return true;
 	}
+
 	return false;
 }
 
