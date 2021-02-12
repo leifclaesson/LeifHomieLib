@@ -28,6 +28,7 @@ public:
 
 	HomieDevice();
 	
+	bool bDebug=false;
 	int iInitialPublishingThrottle_ms=200;
 
 	String strMqttServerIP;
@@ -108,8 +109,6 @@ private:
 	unsigned long ulInitialPublishing=0;
 
 	unsigned long ulConnectTimestamp=0;
-
-	bool bDebug=false;
 
 	bool bInitialized=false;
 

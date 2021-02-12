@@ -173,7 +173,7 @@ bool HomieProperty::Publish()
 	{
 		strPublish=GetDefaultForHomieDataType((eHomieDataType) datatype);
 #ifdef HOMIELIB_VERBOSE
-		csprintf("Empty value for %s encountered, substituting default. ",strID.c_str());
+		csprintf("Empty value for %s/%s encountered, substituting default. ",pParent->strID.c_str(),strID.c_str());
 #endif
 	}
 
@@ -299,7 +299,7 @@ bool HomieProperty::SetValueConstrained(const String & strNewValue)
 				}
 			}
 
-			strValue=String(newvalue);
+			strValue=strNewValue/*String(newvalue)*/;
 			return true;
 		}
 	case homieBool:
