@@ -29,10 +29,11 @@ const char * GetHomieDataTypeText(eHomieDataType datatype);
 bool HomieDataTypeAllowsEmpty(eHomieDataType datatype);
 const char * GetDefaultForHomieDataType(eHomieDataType datatype);
 
-#ifdef USE_PANGOLIN
+#if defined(USE_PANGOLIN)
 struct PANGO_PROPS;
-#else
+#elif defined(USE_ASYNCMQTTCLIENT)
 struct AsyncMqttClientMessageProperties;
+#elif defined(USE_ARDUINOMQTT)
 #endif
 
 class HomieProperty
@@ -81,10 +82,12 @@ public:
 	bool Publish();
 
 
-#ifdef USE_PANGOLIN
+#if defined(USE_PANGOLIN)
 	void OnMqttMessage(const char* topic, uint8_t * payload, PANGO_PROPS & properties, size_t len, size_t index, size_t total);
-#else
+#elif defined(USE_ASYNCMQTTCLIENT)
 	void OnMqttMessage(char* topic, char* payload, AsyncMqttClientMessageProperties & properties, size_t len, size_t index, size_t total);
+#elif defined(USE_ARDUINOMQTT)
+	void OnMqttMessage(char* topic, char* payload, void * properties, size_t len, size_t index, size_t total);
 #endif
 
 

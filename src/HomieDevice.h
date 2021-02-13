@@ -2,13 +2,24 @@
 
 #include "LeifHomieLib.h"
 
-#ifdef USE_PANGOLIN
+#if defined(USE_PANGOLIN)
 #include "PangolinMQTT.h"
-#else
+#elif defined(USE_ASYNCMQTTCLIENT)
 #include "AsyncMqttClient.h"
+#elif defined(USE_ARDUINOMQTT)
+#include "MQTT.h"
+#include <list>
 #endif
 #include "HomieNode.h"
 #include <map>
+
+#if defined(ARDUINO_ARCH_ESP8266)
+#include <ESP8266WiFi.h>
+#else
+#include "WiFi.h"
+#endif
+
+
 
 typedef std::map<String, HomieProperty *> _map_incoming;
 
@@ -27,6 +38,7 @@ class HomieDevice
 public:
 
 	HomieDevice();
+	virtual ~HomieDevice();
 	
 	bool bDebug=false;
 	int iInitialPublishingThrottle_ms=200;
@@ -54,10 +66,13 @@ public:
 
 	uint16_t PublishDirect(const String & topic, uint8_t qos, bool retain, const String & payload);
 
-#ifdef USE_PANGOLIN
+#if defined(USE_PANGOLIN)
 	PangolinMQTT mqtt;
-#else
+#elif defined(USE_ASYNCMQTTCLIENT)
 	AsyncMqttClient mqtt;
+#elif defined(USE_ARDUINOMQTT)
+	MQTTClient * pMQTT=NULL;
+	WiFiClient net;
 #endif
 
 	uint32_t GetUptimeSeconds_WiFi();
@@ -78,20 +93,26 @@ private:
 	friend class HomieNode;
 	friend class HomieProperty;
 
+	void InitialUnsubscribe(HomieProperty * pProp);
+
 	void DoInitialPublishing();
 
 	unsigned long ulMqttReconnectCount=0;
 	unsigned long ulHomieStatsTimestamp=0;
 	unsigned long ulLastReconnect=0;
 
-#ifdef USE_PANGOLIN
+#if defined(USE_PANGOLIN)
 	void onConnect(bool sessionPresent);
 	void onDisconnect(int8_t reason);
 	void onMqttMessage(const char* topic,uint8_t* payload, PANGO_PROPS properties,size_t len,size_t index,size_t total);
-#else
+#elif defined(USE_ASYNCMQTTCLIENT)
 	void onConnect(bool sessionPresent);
 	void onDisconnect(AsyncMqttClientDisconnectReason reason);
 	void onMqttMessage(char* topic, char* payload, AsyncMqttClientMessageProperties properties, size_t len, size_t index, size_t total);
+#elif defined(USE_ARDUINOMQTT)
+	void onConnect(bool sessionPresent);
+	void onDisconnect(int8_t reason);
+	void onClientCallbackAdvanced(MQTTClient *client, char topic[], char payload[], int len);
 #endif
 
 	bool bConnecting=false;
@@ -140,5 +161,8 @@ private:
 
 	unsigned long GetReconnectInterval();
 
+#if defined(USE_ARDUINOMQTT)
+	std::list<HomieProperty *> listUnsubQueue;
+#endif
 
 };

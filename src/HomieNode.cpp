@@ -151,7 +151,11 @@ void HomieProperty::PublishDefault()
 #ifdef HOMIELIB_VERBOSE
 			csprintf("%s didn't receive initial value for base topic %s so unsubscribe and publish default.\n",strFriendlyName.c_str(),GetTopic().c_str());
 #endif
+#if defined(USE_PANGOLIN) | defined(USE_ASYNCMQTTCLIENT)
 			pParent->pParent->mqtt.unsubscribe(GetTopic().c_str());
+#elif defined(USE_ARDUINOMQTT)
+			pParent->pParent->pMQTT->unsubscribe(GetTopic().c_str());
+#endif
 			Publish();
 		}
 	}
@@ -177,7 +181,7 @@ bool HomieProperty::Publish()
 #endif
 	}
 
-	if(!pParent->pParent->mqtt.connected())
+	if(!pParent->pParent->IsConnected())
 	{
 #ifdef HOMIELIB_VERBOSE
 		csprintf("%s can't publish \"%s\" = no conn. heap=%u\n",strFriendlyName.c_str(),strPublish.c_str(),ESP.getFreeHeap());
@@ -192,10 +196,14 @@ bool HomieProperty::Publish()
 #ifdef HOMIELIB_VERBOSE
 		uint32_t free_before=ESP.getFreeHeap();
 #endif
-#ifdef USE_PANGOLIN
+#if defined(USE_PANGOLIN)
 		pParent->pParent->mqtt.publish(GetTopic().c_str(), 2, GetRetained(), (uint8_t *) strPublish.c_str(), strPublish.length(), 0);
-#else
+#elif defined(USE_ASYNCMQTTCLIENT)
 		pParent->pParent->mqtt.publish( GetTopic().c_str(), 0, GetRetained(), strPublish.c_str(), strPublish.length());
+#elif defined(USE_ARDUINOMQTT)
+		pParent->pParent->pMQTT->publish(GetTopic(), strPublish, GetRetained(), 0);
+		//csprintf("publish A %s=%s ret=%i\n",GetTopic().c_str(),strValue.c_str(),ret);
+
 #endif
 
 #ifdef HOMIELIB_VERBOSE
@@ -359,15 +367,19 @@ bool HomieProperty::SetValueConstrained(const String & strNewValue)
 }
 
 
-#ifdef USE_PANGOLIN
+#if defined(USE_PANGOLIN)
 void HomieProperty::OnMqttMessage(const char* topic, uint8_t * payload, PANGO_PROPS & properties, size_t len, size_t index, size_t total)
-#else
-void HomieProperty::OnMqttMessage(char* topic, char* payload, AsyncMqttClientMessageProperties & properties, size_t len, size_t index, size_t total)
-#endif
 {
-	if(properties.retain || total)	//squelch unused parameter warnings
-	{
-	}
+	(void)(properties); (void)(total);
+#elif defined(USE_ASYNCMQTTCLIENT)
+void HomieProperty::OnMqttMessage(char* topic, char* payload, AsyncMqttClientMessageProperties & properties, size_t len, size_t index, size_t total)
+{
+	(void)(properties); (void)(total);
+#elif defined(USE_ARDUINOMQTT)
+void HomieProperty::OnMqttMessage(char* topic, char* payload, void * properties, size_t len, size_t index, size_t total)
+{
+	(void)(properties); (void)(total);
+#endif
 
 	if(index==0)
 	{
@@ -387,7 +399,7 @@ void HomieProperty::OnMqttMessage(char* topic, char* payload, AsyncMqttClientMes
 #ifdef HOMIELIB_VERBOSE
 			csprintf("%s received initial value for base topic %s. Unsubscribing.\n",strFriendlyName.c_str(),GetTopic().c_str());
 #endif
-			pParent->pParent->mqtt.unsubscribe(topic);
+			pParent->pParent->InitialUnsubscribe(this);
 			SetReceivedRetained(true);
 		}
 		else
