@@ -346,7 +346,7 @@ void HomieDevice::Loop()
 					int ret=pMQTT->connect( strID.c_str(), strMqttUserName.c_str(), strMqttPassword.c_str());
 					if(ret)
 					{
-						csprintf("MQTT connect %s %s %s returned %i\n",strID.c_str(), strMqttUserName.c_str(), strMqttPassword.c_str(),ret);
+						//csprintf("MQTT connect %s %s %s returned %i\n",strID.c_str(), strMqttUserName.c_str(), strMqttPassword.c_str(),ret);
 						onConnect(false);
 					}
 #endif
