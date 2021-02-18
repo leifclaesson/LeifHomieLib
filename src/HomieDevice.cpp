@@ -400,6 +400,17 @@ void HomieDevice::onConnect(bool sessionPresent)
 
 	ulSecondCounter_MQTT=0;
 
+	for(size_t i=0;i<vecNode.size();i++)
+	{
+		HomieNode & node=*vecNode[i];
+		for(size_t j=0;j<node.vecProperty.size();j++)
+		{
+			node.vecProperty[j]->SetInitialPublishingDone(false);
+		}
+		yield();
+	}
+
+
 #if defined(USE_ARDUINOMQTT)
 	listUnsubQueue.clear();
 #endif
@@ -506,6 +517,7 @@ void HomieDevice::DoInitialPublishing()
 	{
 		iInitialPublishing=0;
 		ulInitialPublishing=0;
+
 		return;
 	}
 
@@ -545,6 +557,7 @@ void HomieDevice::DoInitialPublishing()
 		{
 			iInitialPublishing=1;
 		}
+
 		return;
 	}
 
@@ -721,6 +734,11 @@ void HomieDevice::DoInitialPublishing()
 					{
 						bError |= false==prop.Publish();
 					}
+
+					prop.SetInitialPublishingDone(true);
+
+
+
 				}
 
 

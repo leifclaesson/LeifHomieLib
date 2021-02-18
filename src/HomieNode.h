@@ -56,11 +56,13 @@ public:
 	void SetRetained(bool bEnable);
 	void SetFakeRetained(bool bEnable);
 	void SetPublishEmptyString(bool bEnable);
+	void SetInitialPublishingDone(bool bDone);
 
 	bool GetSettable();
 	bool GetRetained();
 	bool GetFakeRetained();
 	bool GetPublishEmptyString();
+	bool GetInitialPublishingDone();
 
 //	bool bSettable=false;
 //	bool bRetained=true;

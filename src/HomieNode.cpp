@@ -221,7 +221,13 @@ void HomieProperty::SetValue(const String & strNewValue)
 {
 	if(SetValueConstrained(strNewValue))
 	{
-		Publish();
+		if(GetInitialPublishingDone())
+		{
+			Publish();
+		}
+		else
+		{
+		}
 	}
 }
 
@@ -471,6 +477,7 @@ void HomieProperty::SetPublishEmptyString(bool bEnable){if(bEnable) flags |= 0x8
 void HomieProperty::SetInitialized(bool bEnable){if(bEnable) flags |= 0x10; else flags &= 0xff-0x10;}
 void HomieProperty::SetReceivedRetained(bool bEnable){if(bEnable) flags |= 0x20; else flags &= 0xff-0x20;}
 void HomieProperty::SetIsStandardMQTT(bool bEnable){if(bEnable) flags |= 0x40; else flags &= 0xff-0x40;}
+void HomieProperty::SetInitialPublishingDone(bool bEnable){if(bEnable) flags |= 0x80; else flags &= 0xff-0x80;}
 
 bool HomieProperty::GetSettable(){return (flags & 0x1)!=0;}
 bool HomieProperty::GetRetained(){return (flags & 0x2)!=0;}
@@ -479,4 +486,5 @@ bool HomieProperty::GetPublishEmptyString(){return (flags & 0x8)!=0;}
 bool HomieProperty::GetInitialized(){return (flags & 0x10)!=0;}
 bool HomieProperty::GetReceivedRetained(){return (flags & 0x20)!=0;}
 bool HomieProperty::GetIsStandardMQTT(){return (flags & 0x40)!=0;}
+bool HomieProperty::GetInitialPublishingDone(){return (flags & 0x80)!=0;}
 
