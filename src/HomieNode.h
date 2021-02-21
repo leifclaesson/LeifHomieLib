@@ -34,6 +34,7 @@ struct PANGO_PROPS;
 #elif defined(USE_ASYNCMQTTCLIENT)
 struct AsyncMqttClientMessageProperties;
 #elif defined(USE_ARDUINOMQTT)
+#elif defined(USE_PUBSUBCLIENT)
 #endif
 
 class HomieProperty
@@ -90,6 +91,8 @@ public:
 	void OnMqttMessage(char* topic, char* payload, AsyncMqttClientMessageProperties & properties, size_t len, size_t index, size_t total);
 #elif defined(USE_ARDUINOMQTT)
 	void OnMqttMessage(char* topic, char* payload, void * properties, size_t len, size_t index, size_t total);
+#elif defined(USE_PUBSUBCLIENT)
+	void OnMqttMessage(char* topic, byte* payload, void * properties, unsigned int len, int index, int total);
 #endif
 
 

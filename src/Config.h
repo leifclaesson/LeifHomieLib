@@ -2,8 +2,8 @@
 
 //#define USE_PANGOLIN
 //#define HOMIELIB_VERBOSE
-#if !defined(USE_PANGOLIN) && !defined(USE_ARDUINOMQTT) && !defined(USE_ASYNCMQTTCLIENT)
-	#define USE_ARDUINOMQTT
+#if !defined(USE_PANGOLIN) && !defined(USE_ARDUINOMQTT) && !defined(USE_ASYNCMQTTCLIENT) && !defined(USE_PUBSUBCLIENT)
+	#define USE_PUBSUBCLIENT
 #endif
 
 #ifdef USE_ARDUINOMQTT

@@ -153,7 +153,7 @@ void HomieProperty::PublishDefault()
 #endif
 #if defined(USE_PANGOLIN) | defined(USE_ASYNCMQTTCLIENT)
 			pParent->pParent->mqtt.unsubscribe(GetTopic().c_str());
-#elif defined(USE_ARDUINOMQTT)
+#elif defined(USE_ARDUINOMQTT) | defined(USE_PUBSUBCLIENT)
 			pParent->pParent->pMQTT->unsubscribe(GetTopic().c_str());
 #endif
 			Publish();
@@ -203,6 +203,8 @@ bool HomieProperty::Publish()
 #elif defined(USE_ARDUINOMQTT)
 		pParent->pParent->pMQTT->publish(GetTopic(), strPublish, GetRetained(), 0);
 		//csprintf("publish A %s=%s ret=%i\n",GetTopic().c_str(),strValue.c_str(),ret);
+#elif defined(USE_PUBSUBCLIENT)
+		pParent->pParent->pMQTT->publish(GetTopic().c_str(), (const uint8_t *) strPublish.c_str(), strPublish.length(), GetRetained());
 
 #endif
 
@@ -372,7 +374,6 @@ bool HomieProperty::SetValueConstrained(const String & strNewValue)
 	return true;
 }
 
-
 #if defined(USE_PANGOLIN)
 void HomieProperty::OnMqttMessage(const char* topic, uint8_t * payload, PANGO_PROPS & properties, size_t len, size_t index, size_t total)
 {
@@ -383,6 +384,10 @@ void HomieProperty::OnMqttMessage(char* topic, char* payload, AsyncMqttClientMes
 	(void)(properties); (void)(total);
 #elif defined(USE_ARDUINOMQTT)
 void HomieProperty::OnMqttMessage(char* topic, char* payload, void * properties, size_t len, size_t index, size_t total)
+{
+	(void)(properties); (void)(total);
+#elif defined(USE_PUBSUBCLIENT)
+void HomieProperty::OnMqttMessage(char* topic, byte* payload, void * properties, unsigned int len, int index, int total)
 {
 	(void)(properties); (void)(total);
 #endif

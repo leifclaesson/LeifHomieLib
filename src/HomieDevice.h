@@ -9,6 +9,9 @@
 #elif defined(USE_ARDUINOMQTT)
 #include "MQTT.h"
 #include <list>
+#elif defined(USE_PUBSUBCLIENT)
+#include "PubSubClient.h"
+#include <list>
 #endif
 #include "HomieNode.h"
 #include <map>
@@ -73,6 +76,9 @@ public:
 #elif defined(USE_ARDUINOMQTT)
 	MQTTClient * pMQTT=NULL;
 	WiFiClient net;
+#elif defined(USE_PUBSUBCLIENT)
+	PubSubClient * pMQTT=NULL;
+	WiFiClient net;
 #endif
 
 	uint32_t GetUptimeSeconds_WiFi();
@@ -82,6 +88,16 @@ public:
 	const uint32_t * GetUptimeSecondsPtr_MQTT() { return &ulSecondCounter_MQTT; }
 
 	void SetEnableMQTT(bool bEnable) { this->bEnableMQTT=bEnable; }
+
+#if defined(USE_PANGOLIN)
+	const char * GetMqttLibraryID() { return "PangolinMQTT"; }
+#elif defined(USE_ASYNCMQTTCLIENT)
+	const char * GetMqttLibraryID() { return "AsyncMqttClient"; }
+#elif defined(USE_ARDUINOMQTT)
+	const char * GetMqttLibraryID() { return "ArduinoMQTT"; }
+#elif defined(USE_PUBSUBCLIENT)
+	const char * GetMqttLibraryID() { return "PubSubClient"; }
+#endif
 
 private:
 
@@ -113,6 +129,10 @@ private:
 	void onConnect(bool sessionPresent);
 	void onDisconnect(int8_t reason);
 	void onClientCallbackAdvanced(MQTTClient *client, char topic[], char payload[], int len);
+#elif defined(USE_PUBSUBCLIENT)
+	void onConnect(bool sessionPresent);
+	void onDisconnect(int8_t reason);
+	void onMqttMessage(char* topic, byte* payload, unsigned int len);
 #endif
 
 	bool bConnecting=false;
@@ -161,7 +181,7 @@ private:
 
 	unsigned long GetReconnectInterval();
 
-#if defined(USE_ARDUINOMQTT)
+#if defined(USE_ARDUINOMQTT) | defined(USE_PUBSUBCLIENT)
 	std::list<HomieProperty *> listUnsubQueue;
 #endif
 
