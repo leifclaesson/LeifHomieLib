@@ -67,7 +67,7 @@ HomieProperty::HomieProperty()
 
 void HomieProperty::SetStandardMQTT(const String & strMqttTopic)
 {
-	if(bInitialized) return;
+	if(GetInitialized()) return;
 
 	SetIsStandardMQTT(true);
 	SetRetained(false);
@@ -84,12 +84,16 @@ void HomieProperty::Init()
 		strTopic=pParent->strTopic+"/"+strID;
 		strSetTopic=strTopic+"/set";
 	}*/
-	bInitialized=true;
+	SetInitialized(true);
 
 }
 
 void HomieProperty::DoCallback()
 {
+#if defined(HOMIELIB_VIRTUAL_ONCALLBACK)
+	OnCallback();
+#endif
+
 	if(pVecCallback)
 	{
 		for(size_t i=0;i<pVecCallback->size();i++)
@@ -97,7 +101,6 @@ void HomieProperty::DoCallback()
 			(*pVecCallback)[i](this);
 		}
 	}
-
 }
 
 void HomieProperty::AddCallback(HomiePropertyCallback cb)
@@ -164,7 +167,7 @@ void HomieProperty::PublishDefault()
 
 bool HomieProperty::Publish()
 {
-	if(!bInitialized) return false;
+	if(!GetInitialized()) return false;
 	if(!pParent->pParent->bEnableMQTT) return false;
 	if(GetIsStandardMQTT()) return false;
 
@@ -221,6 +224,9 @@ bool HomieProperty::Publish()
 
 void HomieProperty::SetValue(const String & strNewValue)
 {
+#ifdef HOMIELIB_VERBOSE
+	csprintf("%s setvalue \"%s\"...\n",strFriendlyName.c_str(),strNewValue.c_str());
+#endif
 	if(SetValueConstrained(strNewValue))
 	{
 		if(GetInitialPublishingDone())
@@ -467,22 +473,28 @@ void HomieNode::PublishDefaults()
 	}
 }
 
+void HomieNode::AddProperty(HomieProperty * pProp)
+{
+	vecProperty.push_back(pProp);
+	pProp->pParent=this;
+}
+
 HomieProperty * HomieNode::NewProperty()
 {
 	HomieProperty * ret=new HomieProperty;
-	vecProperty.push_back(ret);
-	ret->pParent=this;
+	AddProperty(ret);
 	return ret;
 }
 
-void HomieProperty::SetSettable(bool bEnable){if(bEnable) flags |= 0x1; else flags &= 0xff-0x1;}
-void HomieProperty::SetRetained(bool bEnable){if(bEnable) flags |= 0x2; else flags &= 0xff-0x2;}
-void HomieProperty::SetFakeRetained(bool bEnable){if(bEnable) flags |= 0x4; else flags &= 0xff-0x4;}
-void HomieProperty::SetPublishEmptyString(bool bEnable){if(bEnable) flags |= 0x8; else flags &= 0xff-0x8;}
-void HomieProperty::SetInitialized(bool bEnable){if(bEnable) flags |= 0x10; else flags &= 0xff-0x10;}
-void HomieProperty::SetReceivedRetained(bool bEnable){if(bEnable) flags |= 0x20; else flags &= 0xff-0x20;}
-void HomieProperty::SetIsStandardMQTT(bool bEnable){if(bEnable) flags |= 0x40; else flags &= 0xff-0x40;}
-void HomieProperty::SetInitialPublishingDone(bool bEnable){if(bEnable) flags |= 0x80; else flags &= 0xff-0x80;}
+void HomieProperty::SetSettable(bool bEnable){if(bEnable) flags |= 0x1; else flags &= ~0x1;}
+void HomieProperty::SetRetained(bool bEnable){if(bEnable) flags |= 0x2; else flags &= ~0x2;}
+void HomieProperty::SetFakeRetained(bool bEnable){if(bEnable) flags |= 0x4; else flags &= ~0x4;}
+void HomieProperty::SetPublishEmptyString(bool bEnable){if(bEnable) flags |= 0x8; else flags &= ~0x8;}
+void HomieProperty::SetInitialized(bool bEnable){if(bEnable) flags |= 0x10; else flags &= ~0x10;}
+void HomieProperty::SetReceivedRetained(bool bEnable){if(bEnable) flags |= 0x20; else flags &= ~0x20;}
+void HomieProperty::SetIsStandardMQTT(bool bEnable){if(bEnable) flags |= 0x40; else flags &= ~0x40;}
+void HomieProperty::SetInitialPublishingDone(bool bEnable){if(bEnable) flags |= 0x80; else flags &= ~0x80;}
+void HomieProperty::SetDebug(bool bEnable){if(bEnable) flags |= 0x100; else flags &= ~0x100;}
 
 bool HomieProperty::GetSettable(){return (flags & 0x1)!=0;}
 bool HomieProperty::GetRetained(){return (flags & 0x2)!=0;}
@@ -492,4 +504,5 @@ bool HomieProperty::GetInitialized(){return (flags & 0x10)!=0;}
 bool HomieProperty::GetReceivedRetained(){return (flags & 0x20)!=0;}
 bool HomieProperty::GetIsStandardMQTT(){return (flags & 0x40)!=0;}
 bool HomieProperty::GetInitialPublishingDone(){return (flags & 0x80)!=0;}
+bool HomieProperty::GetDebug(){return (flags & 0x100)!=0;}
 

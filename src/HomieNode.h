@@ -58,12 +58,14 @@ public:
 	void SetFakeRetained(bool bEnable);
 	void SetPublishEmptyString(bool bEnable);
 	void SetInitialPublishingDone(bool bDone);
+	void SetDebug(bool bEnable);
 
 	bool GetSettable();
 	bool GetRetained();
 	bool GetFakeRetained();
 	bool GetPublishEmptyString();
 	bool GetInitialPublishingDone();
+	bool GetDebug();
 
 //	bool bSettable=false;
 //	bool bRetained=true;
@@ -74,13 +76,17 @@ public:
 
 	void Init();
 
-	void AddCallback(HomiePropertyCallback cb);
 
 	const String & GetValue();
 	void SetValue(const String & strNewValue);
 	void SetBool(bool bValue);
 
+#if defined(HOMIELIB_VIRTUAL_ONCALLBACK)
+	virtual void OnCallback() {};
+#endif
+
 	void DoCallback();
+	void AddCallback(HomiePropertyCallback cb);
 
 	bool Publish();
 
@@ -108,8 +114,6 @@ private:
 	String strValue;
 	std::vector<HomiePropertyCallback> * pVecCallback=NULL;
 
-	bool bInitialized=false;
-
 	friend class HomieDevice;
 	friend class HomieNode;
 
@@ -135,7 +139,7 @@ private:
 public:
 	uint8_t datatype=homieString;	/* eHomieDataType */
 private:
-	uint8_t flags=0;
+	uint16_t flags=0;
 
 };
 
@@ -150,14 +154,15 @@ public:
 	String strFriendlyName;
 	String strType;
 
+	void AddProperty(HomieProperty * pProp);
 	HomieProperty * NewProperty();
+	std::vector<HomieProperty *> vecProperty;
 
 	String GetTopic();
 
 private:
 
 	void Init();
-	std::vector<HomieProperty *> vecProperty;
 
 	friend class HomieDevice;
 	friend class HomieProperty;

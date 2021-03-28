@@ -64,6 +64,8 @@ public:
 
 	HomieNode * NewNode();
 
+	std::vector<HomieNode *> vecNode;
+
 	bool IsConnected();
 	bool IsConnecting() { return bConnecting; };
 
@@ -90,13 +92,13 @@ public:
 	void SetEnableMQTT(bool bEnable) { this->bEnableMQTT=bEnable; }
 
 #if defined(USE_PANGOLIN)
-	const char * GetMqttLibraryID() { return "PangolinMQTT"; }
+	const char * GetMqttLibraryID() { return "LeifHomieLib/PangolinMQTT"; }
 #elif defined(USE_ASYNCMQTTCLIENT)
-	const char * GetMqttLibraryID() { return "AsyncMqttClient"; }
+	const char * GetMqttLibraryID() { return "LeifHomieLib/AsyncMqttClient"; }
 #elif defined(USE_ARDUINOMQTT)
-	const char * GetMqttLibraryID() { return "ArduinoMQTT"; }
+	const char * GetMqttLibraryID() { return "LeifHomieLib/ArduinoMQTT"; }
 #elif defined(USE_PUBSUBCLIENT)
-	const char * GetMqttLibraryID() { return "PubSubClient"; }
+	const char * GetMqttLibraryID() { return "LeifHomieLib/PubSubClient"; }
 #endif
 
 private:
@@ -156,8 +158,6 @@ private:
 
 	String strTopic;
 	char szWillTopic[128];
-
-	std::vector<HomieNode *> vecNode;
 
 	_map_incoming mapIncoming;
 

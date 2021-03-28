@@ -341,7 +341,7 @@ void HomieDevice::Loop()
 					ip.fromString(strMqttServerIP);
 					//ip.fromString("172.22.22.99");
 
-					csprintf("Connecting to MQTT server %s... (LeifHomieLib/%s)\n",strMqttServerIP.c_str(),GetMqttLibraryID());
+					csprintf("Connecting to MQTT server %s... (%s)\n",strMqttServerIP.c_str(),GetMqttLibraryID());
 					bConnecting=true;
 					bSendError=false;
 					bInitialPublishingDone=false;
@@ -660,8 +660,11 @@ void HomieDevice::DoInitialPublishing()
 			String strProperties;
 			for(size_t j=0;j<node.vecProperty.size();j++)
 			{
-				strProperties+=node.vecProperty[j]->strID;
-				if(j<node.vecProperty.size()-1) strProperties+=",";
+				if(!node.vecProperty[j]->GetIsStandardMQTT())
+				{
+					if(strProperties.length()) strProperties+=",";
+					strProperties+=node.vecProperty[j]->strID;
+				}
 			}
 
 #ifdef HOMIELIB_VERBOSE
