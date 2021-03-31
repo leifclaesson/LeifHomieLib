@@ -90,16 +90,16 @@ void setup() {
 		pPropDoorbell=pProp=pNode->NewProperty();
 		pProp->strFriendlyName="Doorbell";
 		pProp->strID="doorbell";
-		pProp->strUnit="";
-		pProp->bRetained=false;
+		pProp->strFormat="";
+		pProp->SetRetained(false);
 		pProp->datatype=homieEnum;
 		pProp->strFormat="PRESSED,RELEASED";
 
 		pPropDoorSensor=pProp=pNode->NewProperty();
 		pProp->strFriendlyName="Door Open";
 		pProp->strID="doorsensor";
-		pProp->strUnit="";
-		pProp->bRetained=true;
+		pProp->strFormat="";
+		pProp->SetRetained(true);
 		pProp->SetBool(false);
 		pProp->datatype=homieBool;
 
@@ -107,11 +107,11 @@ void setup() {
 
 		pProp=pNode->NewProperty();
 		pProp->strID="dimmer";
-//		pProp->strUnit="%";
+//		pProp->strFormat="%";
 		pProp->datatype=homieFloat;
 		pProp->strFormat="-64:64";
-		pProp->bSettable=true;
-		pProp->bRetained=true;
+		pProp->SetSettable(true);
+		pProp->SetRetained(true);
 		pProp->SetValue("26.3");
 		pProp->strFriendlyName="Dimmer";
 		pProp->AddCallback([](HomieProperty * pSource) {
@@ -127,11 +127,11 @@ void setup() {
 
 		pProp=pNode->NewProperty();
 		pProp->strID="dimmer2";
-//		pProp->strUnit="%";
+//		pProp->strFormat="%";
 		pProp->datatype=homieInt;
 		pProp->strFormat="0:100";
-		pProp->bSettable=true;
-		pProp->bRetained=true;
+		pProp->SetSettable(true);
+		pProp->SetRetained(true);
 		pProp->strFriendlyName="Dimmer2";
 		pProp->SetValue("50");
 		pProp->AddCallback([](HomieProperty * pSource) {
@@ -146,10 +146,10 @@ void setup() {
 		pProp=pNode->NewProperty();
 		pProp->strFriendlyName="Test Boolean";
 		pProp->strID="testboolean";
-		pProp->strUnit="";
-		pProp->bRetained=true;
+		pProp->strFormat="";
+		pProp->SetRetained(true);
 		pProp->datatype=homieBool;
-		pProp->bSettable=true;
+		pProp->SetSettable(true);
 		pProp->strFormat="";
 		pProp->AddCallback([](HomieProperty * pSource) {
 			//this property is settable. We'll print it into the console whenever it's updated.
@@ -162,19 +162,19 @@ void setup() {
 /*
 		pPropTemp=pProp=pNode->NewProperty();
 		pProp->strID="temp";
-		pProp->strUnit="C";
+		pProp->strFormat="C";
 		pProp->datatype=homieInt;
 		pProp->strFriendlyName="Temperature";
 
 		pPropHumidity=pProp=pNode->NewProperty();
 		pProp->strID="hum";
-		pProp->strUnit="%";
+		pProp->strFormat="%";
 		pProp->datatype=homieInt;
 		pProp->strFriendlyName="Humidity";
 
 		pPropPrecip=pProp=pNode->NewProperty();
 		pProp->strID="precip";
-		pProp->strUnit="%";
+		pProp->strFormat="%";
 		pProp->datatype=homieInt;
 		pProp->strFriendlyName="Precipitation";
 
@@ -182,7 +182,7 @@ void setup() {
 
 		pPropWind=pProp=pNode->NewProperty();
 		pProp->strID="wind";
-		pProp->strUnit="m/s";
+		pProp->strFormat="m/s";
 		pProp->datatype=homieFloat;
 		pProp->strFriendlyName="Wind speed";
 */
