@@ -44,6 +44,7 @@ public:
 	virtual ~HomieDevice();
 	
 	bool bDebug=false;
+	int iMainLoopInterval_ms=100;
 	int iInitialPublishingThrottle_ms=200;
 
 	String strMqttServerIP;
@@ -166,7 +167,7 @@ private:
 	uint32_t ulSecondCounter_MQTT=0;
 
 	unsigned long ulLastLoopSecondCounterTimestamp=0;
-	unsigned long ulLastLoopDeciSecondCounterTimestamp=0;
+	unsigned long ulLastLoopTimestamp=0;
 
 
 	bool bDoPublishDefaults=false;	//publish default retained values that did not yet exist in the controller

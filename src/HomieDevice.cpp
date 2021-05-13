@@ -113,7 +113,7 @@ void HomieDevice::Init()
 
 #if defined(USE_PANGOLIN) | defined(USE_ASYNCMQTTCLIENT)
 
-	mqtt.setWill(szWillTopic,2,true,"lost");
+	mqtt.setWill(szWillTopic,1,true,"lost",4);
 
 	mqtt.onConnect(std::bind(&HomieDevice::onConnect, this, std::placeholders::_1));
 	mqtt.onDisconnect(std::bind(&HomieDevice::onDisconnect, this, std::placeholders::_1));
@@ -172,6 +172,17 @@ void HomieDevice::Loop()
 {
 	if(!bInitialized) return;
 
+
+	if((int) (millis()-ulLastLoopTimestamp)>=iMainLoopInterval_ms)
+	{
+		ulLastLoopTimestamp+=iMainLoopInterval_ms;
+	}
+	else
+	{
+		return;
+	}
+
+
 	bool bEvenSecond=false;
 
 	if((int) (millis()-ulLastLoopSecondCounterTimestamp)>=1000)
@@ -197,15 +208,6 @@ void HomieDevice::Loop()
 	}
 
 
-	bool bEvenDeciSecond=false;
-
-	if((int) (millis()-ulLastLoopDeciSecondCounterTimestamp)>=100)
-	{
-		ulLastLoopDeciSecondCounterTimestamp+=100;
-		bEvenDeciSecond=true;
-	}
-
-	if(!bEvenDeciSecond) return;
 
 	static uint32_t ulFreeHeap=0xFFFFFFF;
 #if defined(ARDUINO_ARCH_ESP8266)
@@ -262,7 +264,6 @@ void HomieDevice::Loop()
 		DoInitialPublishing();
 
 //		pubsubClient.loop();
-		ulMqttReconnectCount=0;
 
 		if((int) (millis()-ulHomieStatsTimestamp)>=30000)
 		{
@@ -331,7 +332,7 @@ void HomieDevice::Loop()
 			if(!bConnecting)
 			{
 
-				//csprintf("millis()-ulLastReconnect=%i  interval=%i\n",millis()-ulLastReconnect,interval);
+				//csprintf("millis()-ulLastReconnect=%lu  interval=%lu count=%lu\n",millis()-ulLastReconnect,GetReconnectInterval(),ulMqttReconnectCount);
 
 				if(!ulLastReconnect || (millis()-ulLastReconnect)>GetReconnectInterval())
 				{
@@ -340,6 +341,9 @@ void HomieDevice::Loop()
 					IPAddress ip;
 					ip.fromString(strMqttServerIP);
 					//ip.fromString("172.22.22.99");
+
+					ulLastReconnect=millis();
+					ulMqttReconnectCount++;
 
 					csprintf("Connecting to MQTT server %s... (%s)\n",strMqttServerIP.c_str(),GetMqttLibraryID());
 					bConnecting=true;
@@ -463,7 +467,6 @@ void HomieDevice::onDisconnect(int8_t reason)
 	if(bConnecting)
 	{
 		ulLastReconnect=millis();
-		ulMqttReconnectCount++;
 		bConnecting=false;
 		//csprintf("onDisconnect...   reason %i.. lr=%lu\n",reason,ulLastReconnect);
 		//csprintf("MQTT server connection failed. Retrying in %lums\n",GetReconnectInterval());
@@ -826,7 +829,11 @@ void HomieDevice::DoInitialPublishing()
 
 			ulPublishDefaultsTimestamp=millis()+15000;
 			bDoPublishDefaults=true;
+
+			ulMqttReconnectCount=0;
+
 		}
+
 
 	}
 
