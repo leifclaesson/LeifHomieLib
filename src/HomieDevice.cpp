@@ -916,6 +916,7 @@ uint16_t HomieDevice::Publish(const char* topic, uint8_t qos, bool retain, const
 
 	}
 
+	yield();
 	return ret;
 }
 
