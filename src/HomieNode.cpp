@@ -1,5 +1,6 @@
 #include "HomieNode.h"
 #include "HomieDevice.h"
+#include <string>
 
 void HomieLibDebugPrint(const char * szText);
 
