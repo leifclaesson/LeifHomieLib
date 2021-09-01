@@ -101,6 +101,7 @@ public:
 	void OnMqttMessage(char* topic, byte* payload, void * properties, unsigned int len, int index, int total);
 #endif
 
+	HomieNode * GetParentNode() { return pParent; }
 
 
 	String GetTopic();
