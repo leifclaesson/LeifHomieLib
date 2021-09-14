@@ -754,7 +754,14 @@ void HomieDevice::DoInitialPublishing()
 	#ifdef HOMIELIB_VERBOSE
 							csprintf("SUBSCRIBING to %s: ",prop.GetTopic().c_str());
 	#endif
-							bError |= 0==(bSuccess=mqtt.subscribe(prop.GetTopic().c_str(), sub_qos));
+							if(prop.GetReceivedRetained())
+							{
+								bError |= 0==(bSuccess=prop.Publish());
+							}
+							else
+							{
+								bError |= 0==(bSuccess=mqtt.subscribe(prop.GetTopic().c_str(), sub_qos));
+							}
 #ifdef HOMIELIB_VERBOSE
 							csprintf("%s\n",bSuccess?"OK":"FAIL");
 #endif

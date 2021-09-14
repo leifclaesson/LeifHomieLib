@@ -107,6 +107,10 @@ public:
 	String GetTopic();
 	String GetSetTopic();
 
+protected:
+	void SetReceivedRetained(bool bEnable);
+	bool GetReceivedRetained();
+
 private:
 //	String strTopic;
 	//String strSetTopic;
@@ -131,10 +135,8 @@ private:
 
 
 	void SetInitialized(bool bEnable);
-	void SetReceivedRetained(bool bEnable);
 	void SetIsStandardMQTT(bool bEnable);
 	bool GetInitialized();
-	bool GetReceivedRetained();
 	bool GetIsStandardMQTT();
 
 public:
@@ -158,6 +160,7 @@ public:
 	void AddProperty(HomieProperty * pProp);
 	HomieProperty * NewProperty();
 	std::vector<HomieProperty *> vecProperty;
+	HomieDevice * GetParentDevice();
 
 	String GetTopic();
 

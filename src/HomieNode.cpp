@@ -487,6 +487,12 @@ HomieProperty * HomieNode::NewProperty()
 	return ret;
 }
 
+HomieDevice * HomieNode::GetParentDevice()
+{
+	return pParent;
+}
+
+
 void HomieProperty::SetSettable(bool bEnable){if(bEnable) flags |= 0x1; else flags &= ~0x1;}
 void HomieProperty::SetRetained(bool bEnable){if(bEnable) flags |= 0x2; else flags &= ~0x2;}
 void HomieProperty::SetFakeRetained(bool bEnable){if(bEnable) flags |= 0x4; else flags &= ~0x4;}

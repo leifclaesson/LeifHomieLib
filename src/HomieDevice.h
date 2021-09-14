@@ -102,6 +102,8 @@ public:
 	const char * GetMqttLibraryID() { return "LeifHomieLib/PubSubClient"; }
 #endif
 
+	void InitialUnsubscribe(HomieProperty * pProp);
+
 private:
 
 	bool bEnableMQTT=true;
@@ -111,8 +113,6 @@ private:
 
 	friend class HomieNode;
 	friend class HomieProperty;
-
-	void InitialUnsubscribe(HomieProperty * pProp);
 
 	void DoInitialPublishing();
 
