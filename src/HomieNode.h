@@ -110,12 +110,12 @@ public:
 protected:
 	void SetReceivedRetained(bool bEnable);
 	bool GetReceivedRetained();
+	HomieNode * pParent=NULL;
 
 private:
 //	String strTopic;
 	//String strSetTopic;
 	String * pstrUnit=NULL;
-	HomieNode * pParent;
 	String strValue;
 	std::vector<HomiePropertyCallback> * pVecCallback=NULL;
 
