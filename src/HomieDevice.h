@@ -47,6 +47,9 @@ public:
 	int iMainLoopInterval_ms=100;
 	int iInitialPublishingThrottle_ms=200;
 
+	String strFirmwareName;
+	String strFirmwareVersion;
+
 	String strMqttServerIP;
 	String strMqttUserName;
 	String strMqttPassword;

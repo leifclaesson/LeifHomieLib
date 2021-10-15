@@ -274,6 +274,25 @@ void HomieDevice::Loop()
 				bError |= 0==Publish(String(strTopic+"/$state").c_str(), ipub_qos, true, "ready");	//re-publish ready every time we update stats
 			}
 
+			String strExtensions="org.homie.legacy-stats:0.1.1:[4.x]";
+
+			if(strFirmwareName.length() || strFirmwareVersion.length())
+			{
+				strExtensions+=",org.homie.legacy-firmware:0.1.1:[4.x]";
+			}
+
+			bError |= 0==Publish(String(strTopic+"/$extensions").c_str(), 2, true, strExtensions.c_str());
+
+			if(strFirmwareName.length())
+			{
+				bError |= 0==Publish(String(strTopic+"/$fw/name").c_str(), 2, true, strFirmwareName.c_str());
+			}
+
+			if(strFirmwareVersion.length())
+			{
+				bError |= 0==Publish(String(strTopic+"/$fw/version").c_str(), 2, true, strFirmwareVersion.c_str());
+			}
+
 
 			bError |= 0==Publish(String(strTopic+"/$stats/uptime").c_str(), 2, true, String(ulSecondCounter_Uptime).c_str());
 			bError |= 0==Publish(String(strTopic+"/$stats/uptime-wifi").c_str(), 2, true, String(ulSecondCounter_WiFi).c_str());
@@ -581,7 +600,7 @@ void HomieDevice::DoInitialPublishing()
 	{
 		bool bError=false;
 		bError |= 0==Publish(String(strTopic+"/$state").c_str(), ipub_qos, true, "init");
-		bError |= 0==Publish(String(strTopic+"/$homie").c_str(), ipub_qos, true, "3.0.1");
+		bError |= 0==Publish(String(strTopic+"/$homie").c_str(), ipub_qos, true, "4.0.0");
 		bError |= 0==Publish(String(strTopic+"/$name").c_str(), ipub_qos, true, strFriendlyName.c_str());
 		if(bError)
 		{
