@@ -2,6 +2,7 @@
 #include "Arduino.h"
 
 #include <functional>
+#include <vector>
 
 #include "Config.h"
 
