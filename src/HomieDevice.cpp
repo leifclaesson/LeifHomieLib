@@ -524,6 +524,8 @@ void HomieDevice::onMqttMessage(char* topic, byte* payload, unsigned int len)
 	String strTopic=topic;
 	_map_incoming::const_iterator citer=mapIncoming.find(strTopic);
 
+	if(fnMessageCallback && fnMessageCallback(topic,(uint8_t *) payload,len)) return;
+
 	if(citer!=mapIncoming.end())
 	{
 		HomieProperty * pProp=citer->second;

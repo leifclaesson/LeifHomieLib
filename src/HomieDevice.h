@@ -24,6 +24,8 @@
 
 
 
+typedef std::function<bool(const char* topic, uint8_t * payload, size_t length)> MqttMessageCallback;	//return true if handled
+
 typedef std::map<String, HomieProperty *> _map_incoming;
 
 typedef std::function<void(const char * szText)> HomieDebugPrintCallback;
@@ -56,6 +58,8 @@ public:
 
 	String strFriendlyName;
 	String strID;
+
+	MqttMessageCallback fnMessageCallback;
 
 	bool bRapidUpdateRSSI=false;
 

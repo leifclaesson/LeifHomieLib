@@ -108,9 +108,10 @@ public:
 	String GetTopic();
 	String GetSetTopic();
 
+	bool GetReceivedRetained();
+
 protected:
 	void SetReceivedRetained(bool bEnable);
-	bool GetReceivedRetained();
 	HomieNode * pParent=NULL;
 
 private:
