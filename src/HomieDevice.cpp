@@ -744,8 +744,18 @@ void HomieDevice::DoInitialPublishing()
 	#ifdef HOMIELIB_VERBOSE
 					csprintf("SUBSCRIBING to MQTT topic %s: ",prop.GetTopic().c_str());
 	#endif
-					bError |= 0==(bSuccess=mqtt.subscribe(prop.GetTopic().c_str(), sub_qos));
-					mapIncoming[prop.GetTopic()]=&prop;
+
+					_map_incoming::const_iterator citer=mapIncoming.find(prop.GetTopic());
+					if(citer!=mapIncoming.end())
+					{
+						csprintf("PIGGYBACK %s\n",prop.GetTopic().c_str());
+						citer->second->Piggyback(&prop);
+					}
+					else
+					{
+						bError |= 0==(bSuccess=mqtt.subscribe(prop.GetTopic().c_str(), sub_qos));
+						mapIncoming[prop.GetTopic()]=&prop;
+					}
 #ifdef HOMIELIB_VERBOSE
 					csprintf("%s\n",bSuccess?"OK":"FAIL");
 #endif

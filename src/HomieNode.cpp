@@ -89,6 +89,17 @@ void HomieProperty::Init()
 
 }
 
+void HomieProperty::Piggyback(HomieProperty * pDestination)
+{
+	if(!pVecPiggyback)
+	{
+		pVecPiggyback=new std::vector<HomieProperty *>;
+	}
+
+	pVecPiggyback->push_back(pDestination);
+
+}
+
 void HomieProperty::DoCallback()
 {
 #if defined(HOMIELIB_VIRTUAL_ONCALLBACK)
@@ -426,6 +437,16 @@ void HomieProperty::OnMqttMessage(char* topic, byte* payload, void * properties,
 			{
 				Publish();
 			}
+		}
+
+	}
+
+
+	if(pVecPiggyback)
+	{
+		for(size_t i=0;i<pVecPiggyback->size();i++)
+		{
+			(*pVecPiggyback)[i]->OnMqttMessage(topic, payload, properties, len, index, total);
 		}
 
 	}
