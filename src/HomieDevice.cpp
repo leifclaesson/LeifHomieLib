@@ -457,6 +457,7 @@ void HomieDevice::onConnect(bool sessionPresent)
 		}
 	}
 
+	mapIncoming.clear();
 
 #if defined(USE_ARDUINOMQTT) | defined(USE_PUBSUBCLIENT)
 	listUnsubQueue.clear();
