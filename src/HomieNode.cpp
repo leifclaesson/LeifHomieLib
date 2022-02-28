@@ -89,6 +89,14 @@ void HomieProperty::Init()
 
 }
 
+void HomieProperty::ClearPiggybackList()
+{
+	if(pVecPiggyback)
+	{
+		pVecPiggyback->clear();
+	}
+}
+
 void HomieProperty::Piggyback(HomieProperty * pDestination)
 {
 	if(!pVecPiggyback)

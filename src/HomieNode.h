@@ -77,9 +77,6 @@ public:
 
 	void Init();
 
-	void Piggyback(HomieProperty * pDestination);	//allow duplicate subscription
-
-
 	const String & GetValue();
 	void SetValue(const String & strNewValue);
 	void SetBool(bool bValue);
@@ -117,6 +114,9 @@ protected:
 	HomieNode * pParent=NULL;
 
 private:
+
+	void ClearPiggybackList();
+	void Piggyback(HomieProperty * pDestination);	//allow duplicate subscription
 
 	std::vector<HomieProperty *> * pVecPiggyback=NULL;
 //	String strTopic;

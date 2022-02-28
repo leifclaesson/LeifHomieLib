@@ -754,6 +754,7 @@ void HomieDevice::DoInitialPublishing()
 					}
 					else
 					{
+						prop.ClearPiggybackList();
 						bError |= 0==(bSuccess=mqtt.subscribe(prop.GetTopic().c_str(), sub_qos));
 						mapIncoming[prop.GetTopic()]=&prop;
 					}
