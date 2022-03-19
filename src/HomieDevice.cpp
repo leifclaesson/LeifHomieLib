@@ -749,7 +749,9 @@ void HomieDevice::DoInitialPublishing()
 					_map_incoming::const_iterator citer=mapIncoming.find(prop.GetTopic());
 					if(citer!=mapIncoming.end())
 					{
+#ifdef HOMIELIB_VERBOSE
 						csprintf("PIGGYBACK %s\n",prop.GetTopic().c_str());
+#endif
 						citer->second->Piggyback(&prop);
 					}
 					else

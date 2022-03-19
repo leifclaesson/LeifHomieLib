@@ -106,6 +106,12 @@ void HomieProperty::Piggyback(HomieProperty * pDestination)
 
 	pVecPiggyback->push_back(pDestination);
 
+	if(GetReceivedRetained())
+	{
+		pDestination->SetValue(GetValue());
+		pDestination->DoCallback();
+	}
+
 }
 
 void HomieProperty::DoCallback()
@@ -447,6 +453,11 @@ void HomieProperty::OnMqttMessage(char* topic, byte* payload, void * properties,
 			}
 		}
 
+		if(GetIsStandardMQTT())
+		{
+			SetReceivedRetained(true);
+		}
+
 	}
 
 
@@ -456,7 +467,6 @@ void HomieProperty::OnMqttMessage(char* topic, byte* payload, void * properties,
 		{
 			(*pVecPiggyback)[i]->OnMqttMessage(topic, payload, properties, len, index, total);
 		}
-
 	}
 
 }
