@@ -386,7 +386,6 @@ void HomieDevice::Loop()
 						onConnect(false);
 					}
 #elif defined(USE_PUBSUBCLIENT)
-					pMQTT->setBufferSize(256);
 					pMQTT->setServer(ip,1883);
 					int ret=pMQTT->connect(strID.c_str(), strMqttUserName.c_str(), strMqttPassword.c_str(), szWillTopic, 1, 1, "lost");
 					if(ret)
