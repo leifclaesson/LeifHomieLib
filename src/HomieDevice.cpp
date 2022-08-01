@@ -387,6 +387,7 @@ void HomieDevice::Loop()
 					}
 #elif defined(USE_PUBSUBCLIENT)
 					pMQTT->setServer(ip,1883);
+					csprintf("connecting with ID %s\n",strID.c_str());
 					int ret=pMQTT->connect(strID.c_str(), strMqttUserName.c_str(), strMqttPassword.c_str(), szWillTopic, 1, 1, "lost");
 					if(ret)
 					{
@@ -742,7 +743,7 @@ void HomieDevice::DoInitialPublishing()
 				if(prop.GetIsStandardMQTT())
 				{
 	#ifdef HOMIELIB_VERBOSE
-					csprintf("SUBSCRIBING to MQTT topic %s: ",prop.GetTopic().c_str());
+					csprintf("SUBSCRIBING to MQTT topic %s (ID=%s): ",prop.GetTopic().c_str(),prop.strID.c_str());
 	#endif
 
 					_map_incoming::const_iterator citer=mapIncoming.find(prop.GetTopic());
