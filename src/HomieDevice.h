@@ -74,6 +74,10 @@ public:
 
 	std::vector<HomieNode *> vecNode;
 
+
+	HomieProperty * NewSubscription(const String & strTopic);	//to create a LeifSimpleMQTT-compatible mqtt subscription object
+
+
 	bool IsConnected();
 	bool IsConnecting() { return bConnecting; };
 

@@ -60,6 +60,7 @@ public:
 	void SetPublishEmptyString(bool bEnable);
 	void SetInitialPublishingDone(bool bDone);
 	void SetDebug(bool bEnable);
+	void SetClearPayloadAfterCallback(bool bEnable);
 
 	bool GetSettable();
 	bool GetRetained();
@@ -67,6 +68,7 @@ public:
 	bool GetPublishEmptyString();
 	bool GetInitialPublishingDone();
 	bool GetDebug();
+	bool GetClearPayloadAfterCallback();
 
 //	bool bSettable=false;
 //	bool bRetained=true;
@@ -182,4 +184,8 @@ private:
 	void PublishDefaults();
 
 };
+
+
+#define MqttSubscription HomieProperty
+#define MqttSubscriptionCallback HomiePropertyCallback
 
