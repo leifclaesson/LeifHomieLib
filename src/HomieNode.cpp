@@ -469,6 +469,11 @@ void HomieProperty::OnMqttMessage(char* topic, byte* payload, void * properties,
 		}
 	}
 
+	if(GetClearPayloadAfterCallback())
+	{
+		strValue="";
+	}
+
 }
 
 String HomieProperty::GetTopic()
@@ -541,6 +546,8 @@ void HomieProperty::SetReceivedRetained(bool bEnable){if(bEnable) flags |= 0x20;
 void HomieProperty::SetIsStandardMQTT(bool bEnable){if(bEnable) flags |= 0x40; else flags &= ~0x40;}
 void HomieProperty::SetInitialPublishingDone(bool bEnable){if(bEnable) flags |= 0x80; else flags &= ~0x80;}
 void HomieProperty::SetDebug(bool bEnable){if(bEnable) flags |= 0x100; else flags &= ~0x100;}
+void HomieProperty::SetClearPayloadAfterCallback(bool bEnable){if(bEnable) flags |= 0x200; else flags &= ~0x200;}
+
 
 bool HomieProperty::GetSettable(){return (flags & 0x1)!=0;}
 bool HomieProperty::GetRetained(){return (flags & 0x2)!=0;}
@@ -551,4 +558,5 @@ bool HomieProperty::GetReceivedRetained(){return (flags & 0x20)!=0;}
 bool HomieProperty::GetIsStandardMQTT(){return (flags & 0x40)!=0;}
 bool HomieProperty::GetInitialPublishingDone(){return (flags & 0x80)!=0;}
 bool HomieProperty::GetDebug(){return (flags & 0x100)!=0;}
+bool HomieProperty::GetClearPayloadAfterCallback(){return (flags & 0x200)!=0;}
 

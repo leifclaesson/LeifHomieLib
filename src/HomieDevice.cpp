@@ -543,6 +543,23 @@ void HomieDevice::onMqttMessage(char* topic, byte* payload, unsigned int len)
 }
 
 
+HomieProperty * HomieDevice::NewSubscription(const String & strTopic)
+{
+	if(!vecNode.size())
+	{
+		HomieNode * pNode=NewNode();
+		pNode->strID="subs";
+		pNode->strFriendlyName="MQTT subs";
+	}
+
+	HomieProperty * ret=vecNode[0]->NewProperty();
+
+	ret->SetStandardMQTT(strTopic);
+
+	return ret;
+}
+
+
 HomieNode * HomieDevice::NewNode()
 {
 	HomieNode * ret=new HomieNode;
