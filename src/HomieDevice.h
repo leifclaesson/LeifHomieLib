@@ -173,6 +173,8 @@ private:
 
 	_map_incoming mapIncoming;
 
+	_map_incoming mapPlainSubscriptions;
+
 	uint32_t ulSecondCounter_Uptime=0;
 	uint32_t ulSecondCounter_WiFi=0;
 	uint32_t ulSecondCounter_MQTT=0;

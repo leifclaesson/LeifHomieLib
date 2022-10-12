@@ -117,10 +117,6 @@ protected:
 
 private:
 
-	void ClearPiggybackList();
-	void Piggyback(HomieProperty * pDestination);	//allow duplicate subscription
-
-	std::vector<HomieProperty *> * pVecPiggyback=NULL;
 //	String strTopic;
 	//String strSetTopic;
 	String * pstrUnit=NULL;

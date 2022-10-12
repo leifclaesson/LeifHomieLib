@@ -562,9 +562,25 @@ HomieProperty * HomieDevice::NewSubscription(const String & strTopic)
 		pNode->strFriendlyName="MQTT subs";
 	}
 
-	HomieProperty * ret=vecNode[0]->NewProperty();
+	HomieProperty * ret;
 
-	ret->SetStandardMQTT(strTopic);
+
+	_map_incoming::const_iterator citer=mapPlainSubscriptions.find(strTopic);
+	if(citer!=mapPlainSubscriptions.end())
+	{
+#ifdef HOMIELIB_VERBOSE
+		csprintf("PIGGYBACK %s\n",strTopic.c_str());
+#endif
+		ret=citer->second;
+	}
+	else
+	{
+		ret=vecNode[0]->NewProperty();
+		ret->SetStandardMQTT(strTopic);
+		mapPlainSubscriptions[strTopic]=ret;
+	}
+
+
 
 	return ret;
 }
@@ -769,24 +785,13 @@ void HomieDevice::DoInitialPublishing()
 
 				if(prop.GetIsStandardMQTT())
 				{
-	#ifdef HOMIELIB_VERBOSE
-					csprintf("SUBSCRIBING to MQTT topic %s (ID=%s): ",prop.GetTopic().c_str(),prop.strID.c_str());
-	#endif
 
-					_map_incoming::const_iterator citer=mapIncoming.find(prop.GetTopic());
-					if(citer!=mapIncoming.end())
-					{
+					bError |= 0==(bSuccess=mqtt.subscribe(prop.GetTopic().c_str(), sub_qos));
+					mapIncoming[prop.GetTopic()]=&prop;
 #ifdef HOMIELIB_VERBOSE
-						csprintf("PIGGYBACK %s\n",prop.GetTopic().c_str());
+					csprintf("SUBSCRIBING to MQTT topic %s (ID=%s): ",prop.GetTopic().c_str(),prop.strID.c_str());
 #endif
-						citer->second->Piggyback(&prop);
-					}
-					else
-					{
-						prop.ClearPiggybackList();
-						bError |= 0==(bSuccess=mqtt.subscribe(prop.GetTopic().c_str(), sub_qos));
-						mapIncoming[prop.GetTopic()]=&prop;
-					}
+
 #ifdef HOMIELIB_VERBOSE
 					csprintf("%s\n",bSuccess?"OK":"FAIL");
 #endif

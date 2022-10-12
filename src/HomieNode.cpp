@@ -89,31 +89,6 @@ void HomieProperty::Init()
 
 }
 
-void HomieProperty::ClearPiggybackList()
-{
-	if(pVecPiggyback)
-	{
-		pVecPiggyback->clear();
-	}
-}
-
-void HomieProperty::Piggyback(HomieProperty * pDestination)
-{
-	if(!pVecPiggyback)
-	{
-		pVecPiggyback=new std::vector<HomieProperty *>;
-	}
-
-	pVecPiggyback->push_back(pDestination);
-
-	if(GetReceivedRetained())
-	{
-		pDestination->SetValue(GetValue());
-		pDestination->DoCallback();
-	}
-
-}
-
 void HomieProperty::DoCallback()
 {
 #if defined(HOMIELIB_VIRTUAL_ONCALLBACK)
@@ -461,16 +436,11 @@ void HomieProperty::OnMqttMessage(char* topic, byte* payload, void * properties,
 	}
 
 
-	if(pVecPiggyback)
-	{
-		for(size_t i=0;i<pVecPiggyback->size();i++)
-		{
-			(*pVecPiggyback)[i]->OnMqttMessage(topic, payload, properties, len, index, total);
-		}
-	}
-
 	if(GetClearPayloadAfterCallback())
 	{
+#ifdef HOMIELIB_VERBOSE
+		csprintf("%s CLEAR PAYLOAD!\n", topic);
+#endif
 		strValue="";
 	}
 
