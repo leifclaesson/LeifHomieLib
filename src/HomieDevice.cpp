@@ -843,7 +843,10 @@ void HomieDevice::DoInitialPublishing()
 					}
 					else
 					{
-						bError |= false==prop.Publish();
+						if(prop.GetRetained())
+						{
+							bError |= false==prop.Publish();
+						}
 					}
 
 					prop.SetInitialPublishingDone(true);
