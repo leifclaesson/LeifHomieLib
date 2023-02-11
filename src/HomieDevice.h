@@ -63,6 +63,8 @@ public:
 
 	bool bRapidUpdateRSSI=false;
 
+	bool bTelemetrySent=false;
+
 	bool IsInitialized() { return bInitialized; }
 
 	void Init();
@@ -167,8 +169,7 @@ private:
 
 	bool bInitialized=false;
 
-
-	String strTopic;
+		String strTopic;
 	char szWillTopic[128];
 
 	_map_incoming mapIncoming;
