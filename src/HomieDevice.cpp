@@ -320,6 +320,7 @@ void HomieDevice::Loop()
 			else
 			{
 				ulHomieStatsTimestamp=millis();
+				bTelemetrySent=true;
 			}
 
 //			csprintf("Periodic publishing: %i, %i, %i\n",pub_return[0],pub_return[1],pub_return[2]);
@@ -347,6 +348,8 @@ void HomieDevice::Loop()
 		ulSecondCounter_MQTT=0;
 
 		ulHomieStatsTimestamp=millis()-1000000;
+
+		bTelemetrySent=false;
 
 		if(bEnableMQTT)
 		{
