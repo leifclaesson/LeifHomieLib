@@ -147,6 +147,7 @@ const String & HomieProperty::GetValue()
 
 void HomieProperty::PublishDefault()
 {
+	bool bPublished=false;
 	if(GetSettable() && GetRetained() && !GetReceivedRetained() && !GetIsStandardMQTT())
 	{
 		SetReceivedRetained(true);
@@ -160,8 +161,15 @@ void HomieProperty::PublishDefault()
 #elif defined(USE_ARDUINOMQTT) | defined(USE_PUBSUBCLIENT)
 			pParent->pParent->pMQTT->unsubscribe(GetTopic().c_str());
 #endif
-			Publish();
+			SetNeedsPublish(true);
+			bPublished=true;
 		}
+	}
+
+
+	if(GetSettable() && GetRetained() && !GetIsStandardMQTT() && !bPublished)
+	{
+		SetNeedsPublish(true);
 	}
 
 }
@@ -517,6 +525,8 @@ void HomieProperty::SetIsStandardMQTT(bool bEnable){if(bEnable) flags |= 0x40; e
 void HomieProperty::SetInitialPublishingDone(bool bEnable){if(bEnable) flags |= 0x80; else flags &= ~0x80;}
 void HomieProperty::SetDebug(bool bEnable){if(bEnable) flags |= 0x100; else flags &= ~0x100;}
 void HomieProperty::SetClearPayloadAfterCallback(bool bEnable){if(bEnable) flags |= 0x200; else flags &= ~0x200;}
+void HomieProperty::SetNeedsPublish(bool bEnable) {if(bEnable) flags |= 0x400; else flags &= ~0x400;}
+
 
 
 bool HomieProperty::GetSettable(){return (flags & 0x1)!=0;}
@@ -529,4 +539,4 @@ bool HomieProperty::GetIsStandardMQTT(){return (flags & 0x40)!=0;}
 bool HomieProperty::GetInitialPublishingDone(){return (flags & 0x80)!=0;}
 bool HomieProperty::GetDebug(){return (flags & 0x100)!=0;}
 bool HomieProperty::GetClearPayloadAfterCallback(){return (flags & 0x200)!=0;}
-
+bool HomieProperty::GetNeedsPublish(){return (flags & 0x400)!=0;}

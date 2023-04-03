@@ -123,6 +123,8 @@ private:
 	String strValue;
 	std::vector<HomiePropertyCallback> * pVecCallback=NULL;
 
+
+
 	friend class HomieDevice;
 	friend class HomieNode;
 
@@ -142,6 +144,9 @@ private:
 	void SetIsStandardMQTT(bool bEnable);
 	bool GetInitialized();
 	bool GetIsStandardMQTT();
+
+	void SetNeedsPublish(bool bEnable);
+	bool GetNeedsPublish();
 
 public:
 	uint8_t datatype=homieString;	/* eHomieDataType */

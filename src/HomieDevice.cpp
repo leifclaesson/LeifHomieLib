@@ -335,6 +335,9 @@ void HomieDevice::Loop()
 			}
 		}
 
+		DoLazyPublishing();
+
+
 	}
 	else
 	{
@@ -433,6 +436,7 @@ void HomieDevice::Loop()
 #elif defined(USE_PUBSUBCLIENT)
 		pMQTT->unsubscribe((*iter)->GetTopic().c_str());
 #endif
+
 	}
 	listUnsubQueue.clear();
 #endif
@@ -464,6 +468,7 @@ void HomieDevice::onConnect(bool sessionPresent)
 		for(size_t j=0;j<node.vecProperty.size();j++)
 		{
 			node.vecProperty[j]->SetInitialPublishingDone(false);
+			node.vecProperty[j]->SetNeedsPublish(false);
 		}
 	}
 
@@ -601,6 +606,51 @@ void HomieDevice::HandleInitialPublishingError()
 	csprintf("Initial publishing error at stage %i, retrying in %i\n",iInitialPublishing,GetErrorRetryFrequency());
 
 	ulInitialPublishing=millis()+GetErrorRetryFrequency();
+}
+
+
+void HomieDevice::DoLazyPublishing()
+{
+	if(ulLazyPublishing!=0 && (int) (millis()-ulLazyPublishing)<iInitialPublishingThrottle_ms)
+	{
+		return;
+	}
+
+	ulLazyPublishing=millis();
+
+	if(!vecNode.size()) return;
+
+	for(int i=0;i<2;i++)
+	{
+		if(iLazyPublishingNodeIdx>=vecNode.size())
+		{
+			iLazyPublishingNodeIdx=0;
+			iLazyPublishingPropIdx=0;
+		}
+
+		if(i==0 && iLazyPublishingPropIdx >= vecNode[iLazyPublishingNodeIdx]->vecProperty.size())
+		{
+			iLazyPublishingNodeIdx++;
+
+			iLazyPublishingPropIdx=0;
+		}
+	}
+
+	if(iLazyPublishingPropIdx < vecNode[iLazyPublishingNodeIdx]->vecProperty.size())
+	{
+		HomieProperty * pProp=vecNode[iLazyPublishingNodeIdx]->vecProperty[iLazyPublishingPropIdx];
+
+		if(pProp->GetNeedsPublish())
+		{
+			//csprintf("LAZY %i:%i\n",iLazyPublishingNodeIdx,iLazyPublishingPropIdx);
+			pProp->Publish();
+			pProp->SetNeedsPublish(false);
+		}
+
+	}
+
+	iLazyPublishingPropIdx++;
+
 }
 
 void HomieDevice::DoInitialPublishing()
@@ -1157,3 +1207,4 @@ void HomieDevice::InitialUnsubscribe(HomieProperty * pProp)
 #endif
 
 }
+

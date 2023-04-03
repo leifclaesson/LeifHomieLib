@@ -163,6 +163,11 @@ private:
 
 	unsigned long ulInitialPublishing=0;
 
+	void DoLazyPublishing();
+	unsigned long ulLazyPublishing=0;
+	int iLazyPublishingNodeIdx=0;
+	int iLazyPublishingPropIdx=0;
+
 	unsigned long ulConnectTimestamp=0;
 
 	bool bInitialized=false;
