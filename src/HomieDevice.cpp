@@ -625,13 +625,13 @@ void HomieDevice::DoLazyPublishing()
 
 	for(int i=0;i<2;i++)
 	{
-		if(iLazyPublishingNodeIdx>=vecNode.size())
+		if(iLazyPublishingNodeIdx>=(int) vecNode.size())
 		{
 			iLazyPublishingNodeIdx=0;
 			iLazyPublishingPropIdx=0;
 		}
 
-		if(i==0 && iLazyPublishingPropIdx >= vecNode[iLazyPublishingNodeIdx]->vecProperty.size())
+		if(i==0 && iLazyPublishingPropIdx >= (int) vecNode[iLazyPublishingNodeIdx]->vecProperty.size())
 		{
 			iLazyPublishingNodeIdx++;
 
@@ -639,7 +639,7 @@ void HomieDevice::DoLazyPublishing()
 		}
 	}
 
-	if(iLazyPublishingPropIdx < vecNode[iLazyPublishingNodeIdx]->vecProperty.size())
+	if(iLazyPublishingPropIdx < (int) vecNode[iLazyPublishingNodeIdx]->vecProperty.size())
 	{
 		HomieProperty * pProp=vecNode[iLazyPublishingNodeIdx]->vecProperty[iLazyPublishingPropIdx];
 
