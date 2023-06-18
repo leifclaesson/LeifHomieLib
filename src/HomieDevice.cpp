@@ -886,6 +886,10 @@ void HomieDevice::DoInitialPublishing()
 							csprintf("%s\n",bSuccess?"OK":"FAIL");
 #endif
 						}
+						else
+						{
+							bError |= 0==(bSuccess=prop.Publish());
+						}
 	#ifdef HOMIELIB_VERBOSE
 						csprintf("SUBSCRIBING to %s: ",prop.GetSetTopic().c_str());
 	#endif
