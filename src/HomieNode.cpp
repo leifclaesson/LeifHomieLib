@@ -176,9 +176,32 @@ void HomieProperty::PublishDefault()
 
 bool HomieProperty::Publish()
 {
-	if(!GetInitialized()) return false;
-	if(!pParent->pParent->bEnableMQTT) return false;
-	if(GetIsStandardMQTT()) return false;
+#ifdef HOMIELIB_VERBOSE
+	csprintf("Homie Property %s - %s publishing...\n",pParent->strID.c_str(),strID.c_str());
+#endif
+
+	if(!GetInitialized())
+	{
+#ifdef HOMIELIB_VERBOSE
+		csprintf("Not initialized\n");
+#endif
+		return false;
+	}
+	if(!pParent->pParent->bEnableMQTT)
+	{
+#ifdef HOMIELIB_VERBOSE
+		csprintf("!bEnableMQTT\n");
+#endif
+		return false;
+	}
+	if(GetIsStandardMQTT())
+	{
+#ifdef HOMIELIB_VERBOSE
+		csprintf("Standard MQTT -- can't publish from here\n");
+#endif
+		return false;
+	}
+
 
 	bool bRet=false;
 	String strPublish=strValue;
@@ -430,7 +453,7 @@ void HomieProperty::OnMqttMessage(char* topic, byte* payload, void * properties,
 		}
 		else
 		{
-			if(bValid)
+			if(bValid && !GetNoPublishOnSet())
 			{
 				Publish();
 			}
@@ -526,6 +549,7 @@ void HomieProperty::SetInitialPublishingDone(bool bEnable){if(bEnable) flags |= 
 void HomieProperty::SetDebug(bool bEnable){if(bEnable) flags |= 0x100; else flags &= ~0x100;}
 void HomieProperty::SetClearPayloadAfterCallback(bool bEnable){if(bEnable) flags |= 0x200; else flags &= ~0x200;}
 void HomieProperty::SetNeedsPublish(bool bEnable) {if(bEnable) flags |= 0x400; else flags &= ~0x400;}
+void HomieProperty::SetNoPublishOnSet(bool bEnable) {if(bEnable) flags |= 0x800; else flags &= ~0x800;}
 
 
 
@@ -540,3 +564,6 @@ bool HomieProperty::GetInitialPublishingDone(){return (flags & 0x80)!=0;}
 bool HomieProperty::GetDebug(){return (flags & 0x100)!=0;}
 bool HomieProperty::GetClearPayloadAfterCallback(){return (flags & 0x200)!=0;}
 bool HomieProperty::GetNeedsPublish(){return (flags & 0x400)!=0;}
+bool HomieProperty::GetNoPublishOnSet(){return (flags & 0x800)!=0;}
+
+

@@ -83,6 +83,8 @@ public:
 	bool IsConnected();
 	bool IsConnecting() { return bConnecting; };
 
+	bool IsReady();
+
 	uint16_t PublishDirect(const String & topic, uint8_t qos, bool retain, const String & payload);
 
 #if defined(USE_PANGOLIN)
@@ -160,6 +162,8 @@ private:
 	int iInitialPublishing=0;
 	int iInitialPublishing_Node=0;
 	int iInitialPublishing_Prop=0;
+
+	int iRePublishReady=0;
 
 	int iPubCount_Props=0;
 

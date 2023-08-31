@@ -165,6 +165,11 @@ bool HomieDevice::IsConnected()
 #endif
 }
 
+bool HomieDevice::IsReady()
+{
+	return IsConnected() && bInitialPublishingDone;
+}
+
 
 int iWiFiRSSI=0;
 
@@ -271,7 +276,11 @@ void HomieDevice::Loop()
 
 			if(bInitialPublishingDone)
 			{
-				bError |= 0==Publish(String(strTopic+"/$state").c_str(), ipub_qos, true, "ready");	//re-publish ready every time we update stats
+				if(iRePublishReady<2 || (iRePublishReady & 15)==6)		//re-publish once in a while
+				{
+					bError |= 0==Publish(String(strTopic+"/$state").c_str(), ipub_qos, true, "ready");
+				}
+				iRePublishReady++;
 			}
 
 			String strExtensions="org.homie.legacy-stats:0.1.1:[4.x]";
@@ -960,6 +969,8 @@ void HomieDevice::DoInitialPublishing()
 			FinishInitialPublishing(this);
 
 			bInitialPublishingDone=true;
+
+			iRePublishReady=0;
 
 			ulPublishDefaultsTimestamp=millis()+15000;
 			bDoPublishDefaults=true;
