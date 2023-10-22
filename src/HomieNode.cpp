@@ -231,6 +231,8 @@ bool HomieProperty::Publish()
 #ifdef HOMIELIB_VERBOSE
 		uint32_t free_before=ESP.getFreeHeap();
 #endif
+		pParent->pParent->PublishDirectUint8(GetTopic().c_str(), 1, GetRetained(), (const uint8_t *) strPublish.c_str(),strPublish.length());
+/*
 #if defined(USE_PANGOLIN)
 		pParent->pParent->mqtt.publish(GetTopic().c_str(), 2, GetRetained(), (uint8_t *) strPublish.c_str(), strPublish.length(), 0);
 #elif defined(USE_ASYNCMQTTCLIENT)
@@ -242,6 +244,7 @@ bool HomieProperty::Publish()
 		pParent->pParent->pMQTT->publish(GetTopic().c_str(), (const uint8_t *) strPublish.c_str(), strPublish.length(), GetRetained());
 
 #endif
+*/
 
 #ifdef HOMIELIB_VERBOSE
 		uint32_t free_after=ESP.getFreeHeap();

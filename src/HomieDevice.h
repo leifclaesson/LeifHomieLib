@@ -22,7 +22,14 @@
 #include "WiFi.h"
 #endif
 
+#if defined(ARDUINO_ARCH_ESP32) && defined(USE_PUBSUBCLIENT)
+#define HOMIELIB_CONNECT_ASYNC
+#endif
 
+
+/*#if defined(ARDUINO_ARCH_ESP32)
+#include <mutex>
+#endif*/
 
 typedef std::function<bool(const char* topic, uint8_t * payload, size_t length)> MqttMessageCallback;	//return true if handled
 
@@ -86,6 +93,7 @@ public:
 	bool IsReady();
 
 	uint16_t PublishDirect(const String & topic, uint8_t qos, bool retain, const String & payload);
+	uint16_t PublishDirectUint8(const char * topic, uint8_t qos, bool retain, const uint8_t * payload, uint32_t length);
 
 #if defined(USE_PANGOLIN)
 	PangolinMQTT mqtt;
@@ -98,6 +106,16 @@ public:
 	PubSubClient * pMQTT=NULL;
 	WiFiClient net;
 #endif
+
+#ifdef HOMIELIB_CONNECT_ASYNC
+	bool bDoConnect=false;
+	TaskHandle_t hTaskConnect;
+	void TaskConnect();
+#endif
+
+/*#if defined(ARDUINO_ARCH_ESP32)
+	std::mutex mutexPublish;
+#endif*/
 
 	uint32_t GetUptimeSeconds_WiFi();
 	uint32_t GetUptimeSeconds_MQTT();
@@ -123,6 +141,8 @@ private:
 
 	bool bEnableMQTT=true;
 	bool bWasConnected=false;
+
+	String strClientID;
 
 	uint16_t Publish(const char* topic, uint8_t qos, bool retain, const char* payload = nullptr, size_t length = 0, bool dup = false, uint16_t message_id = 0);
 
@@ -153,6 +173,8 @@ private:
 	void onMqttMessage(char* topic, byte* payload, unsigned int len);
 #endif
 
+	void DoDisconnect();
+
 	bool bConnecting=false;
 
 	bool bDoInitialPublishing=false;
@@ -178,7 +200,7 @@ private:
 
 	bool bInitialized=false;
 
-		String strTopic;
+	String strTopic;
 	char szWillTopic[128];
 
 	_map_incoming mapIncoming;

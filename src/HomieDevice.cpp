@@ -80,6 +80,43 @@ HomieDevice::~HomieDevice()
 #endif
 }
 
+#ifdef HOMIELIB_CONNECT_ASYNC
+void TaskConnect(void * parameter)
+{
+	((HomieDevice *) parameter)->TaskConnect();
+}
+
+void HomieDevice::TaskConnect()
+{
+	while(1)
+	{
+		vTaskDelay(10);
+
+		if(bDoConnect)
+		{
+			csprintf("DoConnect!\n");
+			bDoConnect=false;
+
+			int ret=pMQTT->connect(strClientID.c_str(), strMqttUserName.c_str(), strMqttPassword.c_str(), szWillTopic, 1, 1, "lost");
+			if(ret)
+			{
+				csprintf("Success\n");
+				onConnect(false);
+			}
+			else
+			{
+				bConnecting=false;
+				csprintf("Failure!\n");
+			}
+
+		}
+
+
+	}
+}
+
+#endif
+
 void HomieDevice::Init()
 {
 	if(bInitialized) return;
@@ -141,18 +178,51 @@ void HomieDevice::Init()
 
 	bSendError=false;
 
+
+	uint8_t mac[6];
+	WiFi.macAddress(mac);
+
+	char szMacString[10];
+	sprintf(szMacString,"%02x%02x%02x",mac[3],mac[4],mac[5]);
+
+	String strClientID=strID;
+	strClientID += "-";
+	strClientID += szMacString;
+
+#ifdef HOMIELIB_CONNECT_ASYNC
+	if(!bInitialized)
+	{
+		xTaskCreate(
+		  ::TaskConnect, /* Function to implement the task */
+		  "TaskHomieConnect", /* Name of the task */
+		  10000,  /* Stack size in words */
+		  this,  /* Task input parameter */
+		  1,  /* Priority of the task */
+		  &hTaskConnect /* Task handle. */
+		  );
+	}
+#endif
+
+
 	bInitialized=true;
 }
 
-void HomieDevice::Quit()
+void HomieDevice::DoDisconnect()
 {
-	Publish(String(strTopic+"/$state").c_str(), 1, true, "disconnected");
+/*#if defined(ARDUINO_ARCH_ESP32)
+	std::lock_guard<std::mutex> lck(mutexPublish);
+#endif*/
 #if defined(USE_PANGOLIN) | defined(USE_ASYNCMQTTCLIENT)
 	mqtt.disconnect(false);
 #elif defined(USE_ARDUINOMQTT) | defined(USE_PUBSUBCLIENT)
 	pMQTT->disconnect();
 #endif
+}
 
+void HomieDevice::Quit()
+{
+	Publish(String(strTopic+"/$state").c_str(), 1, true, "disconnected");
+	DoDisconnect();
 	bInitialized=false;
 }
 
@@ -254,12 +324,7 @@ void HomieDevice::Loop()
 			if(bWasConnected)
 			{
 				bWasConnected=false;
-				Publish(String(strTopic+"/$state").c_str(), 1, true, "disconnected");
-#if defined(USE_PANGOLIN) | defined(USE_ASYNCMQTTCLIENT)
-				mqtt.disconnect(false);
-#elif defined(USE_ARDUINOMQTT) | defined(USE_PUBSUBCLIENT)
-				pMQTT->disconnect();
-#endif
+				Quit();
 			}
 			return;
 		}
@@ -386,15 +451,6 @@ void HomieDevice::Loop()
 
 					ulConnectTimestamp=millis();
 
-					uint8_t mac[6];
-					WiFi.macAddress(mac);
-
-					char szMacString[10];
-					sprintf(szMacString,"%02x%02x%02x",mac[3],mac[4],mac[5]);
-
-					String strClientID=strID;
-					strClientID += "-";
-					strClientID += szMacString;
 					
 #if defined(USE_PANGOLIN) | defined(USE_ASYNCMQTTCLIENT)
 					mqtt.setServer(ip,1883);//1883
@@ -413,11 +469,17 @@ void HomieDevice::Loop()
 #elif defined(USE_PUBSUBCLIENT)
 					pMQTT->setServer(ip,1883);
 					csprintf("connecting with ID %s\n",strID.c_str());
+
+#ifdef HOMIELIB_CONNECT_ASYNC
+					bDoConnect=true;
+#else
+
 					int ret=pMQTT->connect(strClientID.c_str(), strMqttUserName.c_str(), strMqttPassword.c_str(), szWillTopic, 1, 1, "lost");
 					if(ret)
 					{
 						onConnect(false);
 					}
+#endif
 #endif
 
 				}
@@ -428,12 +490,8 @@ void HomieDevice::Loop()
 				if(!ulConnectTimestamp || (millis()-ulConnectTimestamp)>60000)
 				{
 					csprintf("Reconnect needed, dangling flag\n");
-#if defined(USE_PANGOLIN) | defined(USE_ASYNCMQTTCLIENT)
-					mqtt.disconnect(true);
-#elif defined(USE_ARDUINOMQTT) | defined(USE_PUBSUBCLIENT)
-					pMQTT->disconnect();
-#endif
 					bConnecting=false;
+					DoDisconnect();
 				}
 
 			}
@@ -986,17 +1044,29 @@ void HomieDevice::DoInitialPublishing()
 
 uint16_t HomieDevice::PublishDirect(const String & topic, uint8_t qos, bool retain, const String & payload)
 {
+	return PublishDirectUint8(topic.c_str(),qos,retain,(const uint8_t *) payload.c_str(),payload.length());
+
+}
+
+uint16_t HomieDevice::PublishDirectUint8(const char * topic, uint8_t qos, bool retain, const uint8_t * payload, uint32_t length)
+{
+
+/*#if defined(ARDUINO_ARCH_ESP32)
+	std::lock_guard<std::mutex> lck(mutexPublish);
+#endif*/
+
+	//csprintf("topic: %s, payload: %s, len=%u\n",topic,payload,length);
 
 #if defined(USE_PANGOLIN)
-	mqtt.publish(topic.c_str(), qos, retain, (uint8_t *) payload.c_str(), payload.length(), 0);
+	mqtt.publish(topic, qos, retain, (uint8_t *) payload, length, 0);
 	return 1;
 #elif defined(USE_ASYNCMQTTCLIENT)
-	return mqtt.publish(topic.c_str(), qos, retain, payload.c_str(), payload.length());
+	return mqtt.publish(topic, qos, retain, (const char *) payload, length);
 #elif defined(USE_ARDUINOMQTT)
 	return pMQTT->publish(topic, payload, retain, qos)==true;
 #elif defined(USE_PUBSUBCLIENT)
 	(void)(qos);
-	return pMQTT->publish(topic.c_str(), (const uint8_t *) payload.c_str(), payload.length(), retain);
+	return pMQTT->publish(topic, payload, length, retain);
 #endif
 
 }
@@ -1015,6 +1085,9 @@ uint16_t HomieDevice::Publish(const char* topic, uint8_t qos, bool retain, const
 	{
 		if(!length) length=strlen(payload);
 		//csprintf("publishing topic %s data %s (length %i)\n",payload,length);
+
+		ret=PublishDirectUint8(topic,qos,retain,(const uint8_t *) payload,length);
+/*
 #if defined(USE_PANGOLIN)
 		mqtt.publish(topic, qos, retain, (uint8_t *) payload, length, false);
 #elif defined(USE_ASYNCMQTTCLIENT)
@@ -1026,9 +1099,16 @@ uint16_t HomieDevice::Publish(const char* topic, uint8_t qos, bool retain, const
 		(void)(qos);
 		ret=pMQTT->publish(topic, (uint8_t *) payload, length, retain);
 #endif
+*/
+
+		if(!ret)
+		{
+			csprintf("ERROR publishing %s  %s\n",topic,payload);
+		}
+
 		//PublishPacket pub(topic,qos,retain,payload,length(),false,0);
 		//ret=mqtt.publish(topic,qos,retain,payload,length,dup,message_id);
-		ret=true;
+		//ret=true;
 	}
 
 	//csprintf("Publish %s: ret %i\n",topic,ret);
@@ -1045,11 +1125,7 @@ uint16_t HomieDevice::Publish(const char* topic, uint8_t qos, bool retain, const
 			if((int) (millis()-ulSendErrorTimestamp) > 60000)	//a full minute with no successes
 			{
 				csprintf("Full minute with no publish successes, disconnect and try again\n");
-#if defined(USE_PANGOLIN) | defined(USE_ASYNCMQTTCLIENT)
-				mqtt.disconnect(true);
-#elif defined(USE_ARDUINOMQTT) | defined(USE_PUBSUBCLIENT)
-				pMQTT->disconnect();
-#endif
+				DoDisconnect();
 				bSendError=false;
 				bConnecting=false;
 			}
