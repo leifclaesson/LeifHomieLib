@@ -80,6 +80,16 @@ HomieDevice::~HomieDevice()
 #endif
 }
 
+bool HomieDevice::GetEnableMQTT()
+{
+	if(bEnableMQTT && strMqttServerIP.length()>0)
+	{
+		return true;
+	}
+
+	return false;
+}
+
 #ifdef HOMIELIB_CONNECT_ASYNC
 void TaskConnect(void * parameter)
 {
@@ -319,7 +329,7 @@ void HomieDevice::Loop()
 
 	if(IsConnected())
 	{
-		if(!bEnableMQTT)
+		if(!GetEnableMQTT())
 		{
 			if(bWasConnected)
 			{
@@ -425,7 +435,7 @@ void HomieDevice::Loop()
 
 		bTelemetrySent=false;
 
-		if(bEnableMQTT)
+		if(GetEnableMQTT())
 		{
 
 			if(!bConnecting)
@@ -578,7 +588,7 @@ void HomieDevice::onDisconnect(int8_t reason)
 	}
 	else
 	{
-		if(!bEnableMQTT)
+		if(!GetEnableMQTT())
 		{
 			csprintf("MQTT server disconnected\n");
 		}

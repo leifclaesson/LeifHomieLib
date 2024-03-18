@@ -139,6 +139,8 @@ public:
 
 private:
 
+	bool GetEnableMQTT();
+
 	bool bEnableMQTT=true;
 	bool bWasConnected=false;
 
