@@ -123,6 +123,12 @@ public:
 	const uint32_t * GetUptimeSecondsPtr_WiFi() { return &ulSecondCounter_WiFi; }
 	const uint32_t * GetUptimeSecondsPtr_MQTT() { return &ulSecondCounter_MQTT; }
 
+#if defined(USE_ETHERNET) & defined(ARDUINO_ARCH_ESP32)
+	uint32_t GetUptimeSeconds_Ethernet();
+	const uint32_t * GetUptimeSecondsPtr_Ethernet() { return &ulSecondCounter_Ethernet; }
+#endif
+
+	bool GetEnableMQTT();
 	void SetEnableMQTT(bool bEnable) { this->bEnableMQTT=bEnable; }
 
 #if defined(USE_PANGOLIN)
@@ -139,7 +145,6 @@ public:
 
 private:
 
-	bool GetEnableMQTT();
 
 	bool bEnableMQTT=true;
 	bool bWasConnected=false;
@@ -212,6 +217,10 @@ private:
 	uint32_t ulSecondCounter_Uptime=0;
 	uint32_t ulSecondCounter_WiFi=0;
 	uint32_t ulSecondCounter_MQTT=0;
+
+#if defined(USE_ETHERNET) & defined(ARDUINO_ARCH_ESP32)
+	uint32_t ulSecondCounter_Ethernet=0;
+#endif
 
 	unsigned long ulLastLoopSecondCounterTimestamp=0;
 	unsigned long ulLastLoopTimestamp=0;

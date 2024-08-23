@@ -2,6 +2,12 @@
 #include "HomieNode.h"
 void HomieLibDebugPrint(const char * szText);
 
+
+#if defined(USE_ETHERNET) & defined(ARDUINO_ARCH_ESP32)
+#include <ETH.h>
+#endif
+
+
 #define csprintf(...) { char szTemp[256]; snprintf(szTemp,255,__VA_ARGS__); szTemp[255]=0; HomieLibDebugPrint(szTemp); }
 
 
@@ -275,6 +281,10 @@ void HomieDevice::Loop()
 		ulLastLoopSecondCounterTimestamp+=1000;
 		ulSecondCounter_Uptime++;
 		if(WiFi.status() == WL_CONNECTED) ulSecondCounter_WiFi++;
+#if defined(USE_ETHERNET) & defined(ARDUINO_ARCH_ESP32)
+		if(ETH.localIP()!=0) ulSecondCounter_Ethernet++;
+#endif
+
 		if(IsConnected()) ulSecondCounter_MQTT++;
 
 
@@ -316,10 +326,21 @@ void HomieDevice::Loop()
 
 	}
 
-	if(WiFi.status() != WL_CONNECTED)
+	bool bConnected=false;
+	if(WiFi.status() == WL_CONNECTED) bConnected=true;
+
+#if defined(USE_ETHERNET) & defined(ARDUINO_ARCH_ESP32)
+	if(ETH.localIP()!=0) bConnected=true;
+#endif
+
+	if(!bConnected)
 	{
 		ulSecondCounter_WiFi=0;
 		ulSecondCounter_MQTT=0;
+#if defined(USE_ETHERNET) & defined(ARDUINO_ARCH_ESP32)
+		ulSecondCounter_Ethernet=0;
+#endif
+
 		return;
 	}
 
@@ -380,6 +401,9 @@ void HomieDevice::Loop()
 
 			bError |= 0==Publish(String(strTopic+"/$stats/uptime").c_str(), 2, true, String(ulSecondCounter_Uptime).c_str());
 			bError |= 0==Publish(String(strTopic+"/$stats/uptime-wifi").c_str(), 2, true, String(ulSecondCounter_WiFi).c_str());
+#if defined(USE_ETHERNET) & defined(ARDUINO_ARCH_ESP32)
+			bError |= 0==Publish(String(strTopic+"/$stats/uptime-ethernet").c_str(), 2, true, String(ulSecondCounter_Ethernet).c_str());
+#endif
 			bError |= 0==Publish(String(strTopic+"/$stats/uptime-mqtt").c_str(), 2, true, String(ulSecondCounter_MQTT).c_str());
 			bError |= 0==Publish(String(strTopic+"/$stats/signal").c_str(), 2, true, String(WiFi.RSSI()).c_str());
 			bError |= 0==Publish(String(strTopic+"/$stats/freeheap").c_str(), 2, true, String(ulFreeHeap).c_str());
@@ -793,8 +817,18 @@ void HomieDevice::DoInitialPublishing()
 	if(iInitialPublishing==1)
 	{
 		bool bError=false;
-		bError |= 0==Publish(String(strTopic+"/$localip").c_str(), ipub_qos, true, WiFi.localIP().toString().c_str());
-		bError |= 0==Publish(String(strTopic+"/$mac").c_str(), ipub_qos, true, WiFi.macAddress().c_str());
+		String strIP=WiFi.localIP().toString();
+		String strMAC=WiFi.macAddress();
+#if defined(USE_ETHERNET) & defined(ARDUINO_ARCH_ESP32)
+		if(ETH.localIP()!=0)
+		{
+			strIP=ETH.localIP().toString();
+			strMAC=ETH.macAddress();
+		}
+#endif
+
+		bError |= 0==Publish(String(strTopic+"/$localip").c_str(), ipub_qos, true, strIP.c_str());
+		bError |= 0==Publish(String(strTopic+"/$mac").c_str(), ipub_qos, true, strMAC.c_str());
 		bError |= 0==Publish(String(strTopic+"/$extensions").c_str(), ipub_qos, true, "");
 
 		if(bError)
@@ -812,7 +846,11 @@ void HomieDevice::DoInitialPublishing()
 	{
 		bool bError=false;
 
-		bError |= 0==Publish(String(strTopic+"/$stats").c_str(), ipub_qos, true, "uptime,signal,uptime-wifi,uptime-mqtt,freeheap,freeheap_contiguous,heapfrag");
+		bError |= 0==Publish(String(strTopic+"/$stats").c_str(), ipub_qos, true, "uptime,signal,uptime-wifi,"
+#if defined(USE_ETHERNET) & defined(ARDUINO_ARCH_ESP32)
+				"uptime-ethernet,"
+#endif
+				"uptime-mqtt,freeheap,freeheap_contiguous,heapfrag");
 		bError |= 0==Publish(String(strTopic+"/$stats/interval").c_str(), ipub_qos, true, "60");
 
 		String strNodes;
@@ -1290,6 +1328,13 @@ uint32_t HomieDevice::GetUptimeSeconds_MQTT()
 {
 	return ulSecondCounter_MQTT;
 }
+
+#if defined(USE_ETHERNET) & defined(ARDUINO_ARCH_ESP32)
+uint32_t HomieDevice::GetUptimeSeconds_Ethernet()
+{
+	return ulSecondCounter_Ethernet;
+}
+#endif
 
 unsigned long HomieDevice::GetReconnectInterval()
 {
