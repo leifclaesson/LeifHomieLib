@@ -305,11 +305,9 @@ void HomieDevice::Loop()
 
 
 	static uint32_t ulFreeHeap=0xFFFFFFF;
-#if defined(ARDUINO_ARCH_ESP8266)
-	static uint16_t ulFreeHeapContig=0xFFFF;
-	static uint8_t uHeapFrag=0;
-#else
 	static uint32_t ulFreeHeapContig=0xFFFFFFF;
+#if defined(ARDUINO_ARCH_ESP8266)
+	static uint8_t uHeapFrag=0;	
 #endif
 
 	if(bEvenSecond)
