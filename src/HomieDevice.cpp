@@ -282,7 +282,8 @@ void HomieDevice::Loop()
 		ulSecondCounter_Uptime++;
 		if(WiFi.status() == WL_CONNECTED) ulSecondCounter_WiFi++;
 #if defined(USE_ETHERNET) & defined(ARDUINO_ARCH_ESP32)
-		if(ETH.localIP()!=0) ulSecondCounter_Ethernet++;
+		uint32_t _eth_ip=ETH.localIP();
+		if(_eth_ip!=0) ulSecondCounter_Ethernet++;
 #endif
 
 		if(IsConnected()) ulSecondCounter_MQTT++;
@@ -330,7 +331,8 @@ void HomieDevice::Loop()
 	if(WiFi.status() == WL_CONNECTED) bConnected=true;
 
 #if defined(USE_ETHERNET) & defined(ARDUINO_ARCH_ESP32)
-	if(ETH.localIP()!=0) bConnected=true;
+	uint32_t _eth_ip=ETH.localIP();
+	if(_eth_ip!=0) bConnected=true;
 #endif
 
 	if(!bConnected)
@@ -820,7 +822,8 @@ void HomieDevice::DoInitialPublishing()
 		String strIP=WiFi.localIP().toString();
 		String strMAC=WiFi.macAddress();
 #if defined(USE_ETHERNET) & defined(ARDUINO_ARCH_ESP32)
-		if(ETH.localIP()!=0)
+		uint32_t _eth_ip=ETH.localIP();
+		if(_eth_ip!=0)
 		{
 			strIP=ETH.localIP().toString();
 			strMAC=ETH.macAddress();
