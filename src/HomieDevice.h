@@ -12,7 +12,16 @@
 #elif defined(USE_PUBSUBCLIENT)
 #include "PubSubClient.h"
 #include <list>
+#elif defined(USE_MPSCG)
+	#define _MQTT_PUBSUB_LOGLEVEL_ 0
+	#ifndef MQTT_MAX_PACKET_SIZE
+		#define MQTT_MAX_PACKET_SIZE 256
+	#endif
+	#include "MQTTPubSubClient_Generic.h"
+	#include <list>
+	using MyPubSubClient = arduino::mqtt::PubSubClient<MQTT_MAX_PACKET_SIZE>;
 #endif
+
 #include "HomieNode.h"
 #include <map>
 
@@ -22,7 +31,7 @@
 #include "WiFi.h"
 #endif
 
-#if defined(ARDUINO_ARCH_ESP32) && defined(USE_PUBSUBCLIENT)
+#if defined(ARDUINO_ARCH_ESP32) && (defined(USE_PUBSUBCLIENT) | defined(USE_MPSCG))
 #define HOMIELIB_CONNECT_ASYNC
 #endif
 
@@ -105,6 +114,9 @@ public:
 #elif defined(USE_PUBSUBCLIENT)
 	PubSubClient * pMQTT=NULL;
 	WiFiClient net;
+#elif defined(USE_MPSCG)
+	WiFiClient client;
+	MyPubSubClient mqttClient;
 #endif
 
 #ifdef HOMIELIB_CONNECT_ASYNC
@@ -139,6 +151,8 @@ public:
 	const char * GetMqttLibraryID() { return "LeifHomieLib/ArduinoMQTT"; }
 #elif defined(USE_PUBSUBCLIENT)
 	const char * GetMqttLibraryID() { return "LeifHomieLib/PubSubClient"; }
+#elif defined(USE_MPSCG)
+	const char * GetMqttLibraryID() { return "LeifHomieLib/MQTTPubSubClient_Generic"; }
 #endif
 
 	void InitialUnsubscribe(HomieProperty * pProp);
@@ -178,6 +192,10 @@ private:
 	void onConnect(bool sessionPresent);
 	void onDisconnect(int8_t reason);
 	void onMqttMessage(char* topic, byte* payload, unsigned int len);
+#elif defined(USE_MPSCG)
+	void onConnect(bool sessionPresent);
+	void onDisconnect(int8_t reason);
+	void onMqttMessage(const char* topic, const char* payload, const size_t len);
 #endif
 
 	void DoDisconnect();
@@ -238,7 +256,9 @@ private:
 
 	unsigned long GetReconnectInterval();
 
-#if defined(USE_ARDUINOMQTT) | defined(USE_PUBSUBCLIENT)
+	bool subscribe(const char * topic, uint8_t sub_qos);
+
+#if defined(USE_ARDUINOMQTT) | defined(USE_PUBSUBCLIENT) | defined(USE_MPSCG)
 	std::list<HomieProperty *> listUnsubQueue;
 #endif
 

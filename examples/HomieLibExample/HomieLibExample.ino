@@ -90,16 +90,14 @@ void setup() {
 		pPropDoorbell=pProp=pNode->NewProperty();
 		pProp->strFriendlyName="Doorbell";
 		pProp->strID="doorbell";
-		pProp->strUnit="";
-		pProp->bRetained=false;
+		pProp->SetRetained(false);
 		pProp->datatype=homieEnum;
 		pProp->strFormat="PRESSED,RELEASED";
 
 		pPropDoorSensor=pProp=pNode->NewProperty();
 		pProp->strFriendlyName="Door Open";
 		pProp->strID="doorsensor";
-		pProp->strUnit="";
-		pProp->bRetained=true;
+		pProp->SetRetained(true);
 		pProp->SetBool(false);
 		pProp->datatype=homieBool;
 
@@ -110,8 +108,8 @@ void setup() {
 //		pProp->strUnit="%";
 		pProp->datatype=homieFloat;
 		pProp->strFormat="-64:64";
-		pProp->bSettable=true;
-		pProp->bRetained=true;
+		pProp->SetSettable(true);
+		pProp->SetRetained(true);
 		pProp->SetValue("26.3");
 		pProp->strFriendlyName="Dimmer";
 		pProp->AddCallback([](HomieProperty * pSource) {
@@ -130,8 +128,8 @@ void setup() {
 //		pProp->strUnit="%";
 		pProp->datatype=homieInt;
 		pProp->strFormat="0:100";
-		pProp->bSettable=true;
-		pProp->bRetained=true;
+		pProp->SetSettable(true);
+		pProp->SetRetained(true);
 		pProp->strFriendlyName="Dimmer2";
 		pProp->SetValue("50");
 		pProp->AddCallback([](HomieProperty * pSource) {
@@ -146,10 +144,9 @@ void setup() {
 		pProp=pNode->NewProperty();
 		pProp->strFriendlyName="Test Boolean";
 		pProp->strID="testboolean";
-		pProp->strUnit="";
-		pProp->bRetained=true;
 		pProp->datatype=homieBool;
-		pProp->bSettable=true;
+		pProp->SetSettable(true);
+		pProp->SetRetained(true);
 		pProp->strFormat="";
 		pProp->AddCallback([](HomieProperty * pSource) {
 			//this property is settable. We'll print it into the console whenever it's updated.

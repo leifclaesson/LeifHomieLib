@@ -35,6 +35,11 @@ void HomieLibDebugPrint(const char * szText)
 
 }
 
+#if defined(USE_MPSCG)
+static void DummyTopicCallback(const char*, const size_t)
+{
+}
+#endif
 
 HomieDevice * pToken=NULL;
 
@@ -113,7 +118,38 @@ void HomieDevice::TaskConnect()
 			csprintf("DoConnect!\n");
 			bDoConnect=false;
 
+#if defined(USE_MPSCG)
+			IPAddress ip;
+			ip.fromString(strMqttServerIP);
+
+			int ret=client.connect(ip, 1883, 5000 );
+			//csprintf("returned %i\n",ret);
+			if(ret==1)
+			{
+				//strMqttPassword="wrong";
+				//csprintf("connected! logging in: %s/%s (id %s)\n",strMqttUserName.c_str(),strMqttPassword.c_str(),strClientID.c_str());
+				ret=mqttClient.connect(strClientID.c_str(),strMqttUserName.c_str(),strMqttPassword.c_str());
+				if(ret)
+				{
+					//csprintf("logged in\n");
+					onConnect(false);
+				}
+				else
+				{
+					client.stop();
+					onDisconnect(0);
+				}
+
+
+			}
+			else
+			{
+				onDisconnect(0);
+			}
+
+#else
 			int ret=pMQTT->connect(strClientID.c_str(), strMqttUserName.c_str(), strMqttPassword.c_str(), szWillTopic, 1, 1, "lost");
+#endif
 			if(ret)
 			{
 				csprintf("Success\n");
@@ -186,6 +222,14 @@ void HomieDevice::Init()
 			{
 				onMqttMessage(topic,payload,length);
 			});
+#elif defined(USE_MPSCG)
+	mqttClient.begin(client);
+	mqttClient.setWill(szWillTopic,"lost",true,2);
+	mqttClient.subscribe([this](const char * topic, const char * payload, const size_t size)
+	{
+		//csprintf("mqtt message: %s=%s\n",topic,payload);
+		onMqttMessage(topic, payload, size);
+	});
 #endif
 
 #if defined(USE_PANGOLIN)
@@ -232,6 +276,8 @@ void HomieDevice::DoDisconnect()
 	mqtt.disconnect(false);
 #elif defined(USE_ARDUINOMQTT) | defined(USE_PUBSUBCLIENT)
 	pMQTT->disconnect();
+#elif defined(USE_MPSCG)
+	mqttClient.disconnect();
 #endif
 }
 
@@ -248,6 +294,8 @@ bool HomieDevice::IsConnected()
 	return mqtt.connected();
 #elif defined(USE_ARDUINOMQTT) | defined(USE_PUBSUBCLIENT)
 	return pMQTT->connected();
+#elif defined(USE_MPSCG)
+	return mqttClient.isConnected();
 #endif
 }
 
@@ -348,6 +396,8 @@ void HomieDevice::Loop()
 
 #if defined(USE_ARDUINOMQTT) | defined(USE_PUBSUBCLIENT)
 	pMQTT->loop();
+#elif defined(USE_MPSCG)
+	mqttClient.update();
 #endif
 
 	if(IsConnected())
@@ -516,6 +566,37 @@ void HomieDevice::Loop()
 						onConnect(false);
 					}
 #endif
+#elif defined(USE_MPSCG)
+#ifdef HOMIELIB_CONNECT_ASYNC
+					bDoConnect=true;
+#else
+					//ip.fromString("172.22.16.44");
+					int timeout=((ulMqttReconnectCount % 3) == 2)?2000:1000;
+					//csprintf("connecting to IP %s, attempt %u mod %u timeout %i\n",ip.toString().c_str(),ulMqttReconnectCount, ulMqttReconnectCount % 3, timeout);
+					int ret=client.connect(ip, 1883, timeout );
+					//csprintf("returned %i\n",ret);
+					if(ret==1)
+					{
+						//strMqttPassword="wrong";
+						//csprintf("connected! logging in: %s/%s (id %s)\n",strMqttUserName.c_str(),strMqttPassword.c_str(),strClientID.c_str());
+						if(mqttClient.connect(strClientID.c_str(),strMqttUserName.c_str(),strMqttPassword.c_str()))
+						{
+							//csprintf("logged in\n");
+							onConnect(false);
+						}
+						else
+						{
+							client.stop();
+							onDisconnect(0);
+						}
+
+
+					}
+					else
+					{
+						onDisconnect(0);
+					}
+#endif
 #endif
 
 				}
@@ -534,13 +615,15 @@ void HomieDevice::Loop()
 		}
 	}
 
-#if defined(USE_ARDUINOMQTT) | defined(USE_PUBSUBCLIENT)
+#if defined(USE_ARDUINOMQTT) | defined(USE_PUBSUBCLIENT) | defined(USE_MPSCG)
 	for(std::list<HomieProperty *>::iterator iter=listUnsubQueue.begin();iter!=listUnsubQueue.end();iter++)
 	{
 #if defined(USE_ARDUINOMQTT)
 		pMQTT->unsubscribe((*iter)->GetTopic());
 #elif defined(USE_PUBSUBCLIENT)
 		pMQTT->unsubscribe((*iter)->GetTopic().c_str());
+#elif defined(USE_MPSCG)
+		mqttClient.unsubscribe((*iter)->GetTopic().c_str());
 #endif
 
 	}
@@ -580,7 +663,7 @@ void HomieDevice::onConnect(bool sessionPresent)
 
 	mapIncoming.clear();
 
-#if defined(USE_ARDUINOMQTT) | defined(USE_PUBSUBCLIENT)
+#if defined(USE_ARDUINOMQTT) | defined(USE_PUBSUBCLIENT) | defined(USE_MPSCG)
 	listUnsubQueue.clear();
 #endif
 
@@ -599,7 +682,7 @@ void HomieDevice::onDisconnect(AsyncMqttClientDisconnectReason reason)
 	if(reason==AsyncMqttClientDisconnectReason::TCP_DISCONNECTED)
 	{
 	}
-#elif defined(USE_ARDUINOMQTT) | defined(USE_PUBSUBCLIENT)
+#elif defined(USE_ARDUINOMQTT) | defined(USE_PUBSUBCLIENT) | defined(USE_MPSCG)
 void HomieDevice::onDisconnect(int8_t reason)
 {
 	(void)(reason);
@@ -639,6 +722,11 @@ void HomieDevice::onClientCallbackAdvanced(MQTTClient *client, char topic[], cha
 	(void)(client);
 #elif defined(USE_PUBSUBCLIENT)
 void HomieDevice::onMqttMessage(char* topic, byte* payload, unsigned int len)
+{
+	void * properties=NULL;
+	uint8_t total=0; uint8_t index=0;
+#elif defined(USE_MPSCG)
+void HomieDevice::onMqttMessage(const char* topic, const char* payload, size_t len)
 {
 	void * properties=NULL;
 	uint8_t total=0; uint8_t index=0;
@@ -761,11 +849,6 @@ void HomieDevice::DoLazyPublishing()
 
 void HomieDevice::DoInitialPublishing()
 {
-#if defined(USE_ARDUINOMQTT)
-	MQTTClient & mqtt=*pMQTT;
-#elif defined(USE_PUBSUBCLIENT)
-	PubSubClient & mqtt=*pMQTT;
-#endif
 
 
 	if(!bDoInitialPublishing)
@@ -957,7 +1040,7 @@ void HomieDevice::DoInitialPublishing()
 				if(prop.GetIsStandardMQTT())
 				{
 
-					bError |= 0==(bSuccess=mqtt.subscribe(prop.GetTopic().c_str(), sub_qos));
+					bError |= 0==(bSuccess=subscribe(prop.GetTopic().c_str(), sub_qos));
 					mapIncoming[prop.GetTopic()]=&prop;
 #ifdef HOMIELIB_VERBOSE
 					csprintf("SUBSCRIBING to MQTT topic %s (ID=%s): ",prop.GetTopic().c_str(),prop.strID.c_str());
@@ -998,7 +1081,7 @@ void HomieDevice::DoInitialPublishing()
 							}
 							else
 							{
-								bError |= 0==(bSuccess=mqtt.subscribe(prop.GetTopic().c_str(), sub_qos));
+								bError |= 0==(bSuccess=subscribe(prop.GetTopic().c_str(), sub_qos));
 							}
 #ifdef HOMIELIB_VERBOSE
 							csprintf("%s\n",bSuccess?"OK":"FAIL");
@@ -1011,7 +1094,7 @@ void HomieDevice::DoInitialPublishing()
 	#ifdef HOMIELIB_VERBOSE
 						csprintf("SUBSCRIBING to %s: ",prop.GetSetTopic().c_str());
 	#endif
-						bError |= 0==(bSuccess=mqtt.subscribe(prop.GetSetTopic().c_str(), sub_qos));
+						bError |= 0==(bSuccess=subscribe(prop.GetSetTopic().c_str(), sub_qos));
 #ifdef HOMIELIB_VERBOSE
 						csprintf("%s\n",bSuccess?"OK":"FAIL");
 #endif
@@ -1099,6 +1182,24 @@ uint16_t HomieDevice::PublishDirect(const String & topic, uint8_t qos, bool reta
 
 }
 
+bool HomieDevice::subscribe(const char * topic, uint8_t sub_qos)
+{
+#if defined(USE_ARDUINOMQTT)
+	MQTTClient & mqtt=*pMQTT;
+#elif defined(USE_PUBSUBCLIENT)
+	PubSubClient & mqtt=*pMQTT;
+#elif defined(USE_MPSCG)
+	MyPubSubClient & mqtt=mqttClient;
+#endif
+
+#if defined(USE_MPSCG)
+	return mqtt.subscribe(topic, sub_qos, DummyTopicCallback);
+#else
+	return mqtt.subscribe(topic, sub_qos);
+#endif
+
+}
+
 uint16_t HomieDevice::PublishDirectUint8(const char * topic, uint8_t qos, bool retain, const uint8_t * payload, uint32_t length)
 {
 
@@ -1118,6 +1219,8 @@ uint16_t HomieDevice::PublishDirectUint8(const char * topic, uint8_t qos, bool r
 #elif defined(USE_PUBSUBCLIENT)
 	(void)(qos);
 	return pMQTT->publish(topic, payload, length, retain);
+#elif defined(USE_MPSCG)
+	return mqttClient.publish(topic, (const char *) payload, retain, qos);
 #endif
 
 }
@@ -1354,7 +1457,7 @@ void HomieDevice::InitialUnsubscribe(HomieProperty * pProp)
 
 #if defined(USE_PANGOLIN) | defined(USE_ASYNCMQTTCLIENT)
 	mqtt.unsubscribe(pProp->GetTopic().c_str());
-#elif defined(USE_ARDUINOMQTT) | defined(USE_PUBSUBCLIENT)
+#elif defined(USE_ARDUINOMQTT) | defined(USE_PUBSUBCLIENT) | defined(USE_MPSCG)
 	listUnsubQueue.push_back(pProp);
 #endif
 

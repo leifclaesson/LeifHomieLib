@@ -160,6 +160,8 @@ void HomieProperty::PublishDefault()
 			pParent->pParent->mqtt.unsubscribe(GetTopic().c_str());
 #elif defined(USE_ARDUINOMQTT) | defined(USE_PUBSUBCLIENT)
 			pParent->pParent->pMQTT->unsubscribe(GetTopic().c_str());
+#elif defined(USE_MPSCG)
+			pParent->pParent->mqttClient.unsubscribe(GetTopic());
 #endif
 			SetNeedsPublish(true);
 			bPublished=true;
@@ -431,6 +433,9 @@ void HomieProperty::OnMqttMessage(char* topic, char* payload, void * properties,
 void HomieProperty::OnMqttMessage(char* topic, byte* payload, void * properties, unsigned int len, int index, int total)
 {
 	(void)(properties); (void)(total);
+#elif defined(USE_MPSCG)
+void MqttSubscription::OnMqttMessage(const char* topic, const char* payload, void * properties, size_t len, int index, int total)
+{
 #endif
 
 	if(index==0)
