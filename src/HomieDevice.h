@@ -157,6 +157,10 @@ public:
 
 	void InitialUnsubscribe(HomieProperty * pProp);
 
+	String GetTopic() { return strTopic; }
+
+	int GetPubQOS();
+
 private:
 
 

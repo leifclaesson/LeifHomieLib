@@ -13,7 +13,7 @@ void HomieLibDebugPrint(const char * szText);
 
 static std::vector<HomieDebugPrintCallback> vecDebugPrint;
 
-const int ipub_qos=1;
+const int pub_qos=1;
 #if defined(USE_PUBSUBCLIENT)
 const int sub_qos=1;
 #else
@@ -89,6 +89,11 @@ HomieDevice::~HomieDevice()
 #elif defined(USE_PUBSUBCLIENT)
 	delete pMQTT;
 #endif
+}
+
+int HomieDevice::GetPubQOS()
+{
+	return pub_qos;
 }
 
 bool HomieDevice::GetEnableMQTT()
@@ -283,7 +288,7 @@ void HomieDevice::DoDisconnect()
 
 void HomieDevice::Quit()
 {
-	Publish(String(strTopic+"/$state").c_str(), 1, true, "disconnected");
+	Publish(String(strTopic+"/$state").c_str(), pub_qos, true, "disconnected");
 	DoDisconnect();
 	bInitialized=false;
 }
@@ -344,7 +349,7 @@ void HomieDevice::Loop()
 			{
 				iWiFiRSSI=iWiFiRSSI_Current;
 
-				Publish( String(strTopic+"/$stats/signal").c_str(), 2, true, String(iWiFiRSSI).c_str());
+				Publish( String(strTopic+"/$stats/signal").c_str(), pub_qos, true, String(iWiFiRSSI).c_str());
 			}
 		}
 
@@ -426,7 +431,7 @@ void HomieDevice::Loop()
 			{
 				if(iRePublishReady<2 || (iRePublishReady & 15)==6)		//re-publish once in a while
 				{
-					bError |= 0==Publish(String(strTopic+"/$state").c_str(), ipub_qos, true, "ready");
+					bError |= 0==Publish(String(strTopic+"/$state").c_str(), pub_qos, true, "ready");
 				}
 				iRePublishReady++;
 			}
@@ -438,35 +443,35 @@ void HomieDevice::Loop()
 				strExtensions+=",org.homie.legacy-firmware:0.1.1:[4.x]";
 			}
 
-			bError |= 0==Publish(String(strTopic+"/$extensions").c_str(), 2, true, strExtensions.c_str());
+			bError |= 0==Publish(String(strTopic+"/$extensions").c_str(), pub_qos, true, strExtensions.c_str());
 
 			if(strFirmwareName.length())
 			{
-				bError |= 0==Publish(String(strTopic+"/$fw/name").c_str(), 2, true, strFirmwareName.c_str());
+				bError |= 0==Publish(String(strTopic+"/$fw/name").c_str(), pub_qos, true, strFirmwareName.c_str());
 			}
 
 			if(strFirmwareVersion.length())
 			{
-				bError |= 0==Publish(String(strTopic+"/$fw/version").c_str(), 2, true, strFirmwareVersion.c_str());
+				bError |= 0==Publish(String(strTopic+"/$fw/version").c_str(), pub_qos, true, strFirmwareVersion.c_str());
 			}
 
 
-			bError |= 0==Publish(String(strTopic+"/$stats/uptime").c_str(), 2, true, String(ulSecondCounter_Uptime).c_str());
-			bError |= 0==Publish(String(strTopic+"/$stats/uptime-wifi").c_str(), 2, true, String(ulSecondCounter_WiFi).c_str());
+			bError |= 0==Publish(String(strTopic+"/$stats/uptime").c_str(), pub_qos, true, String(ulSecondCounter_Uptime).c_str());
+			bError |= 0==Publish(String(strTopic+"/$stats/uptime-wifi").c_str(), pub_qos, true, String(ulSecondCounter_WiFi).c_str());
 #if defined(USE_ETHERNET) & defined(ARDUINO_ARCH_ESP32)
-			bError |= 0==Publish(String(strTopic+"/$stats/uptime-ethernet").c_str(), 2, true, String(ulSecondCounter_Ethernet).c_str());
+			bError |= 0==Publish(String(strTopic+"/$stats/uptime-ethernet").c_str(), pub_qos, true, String(ulSecondCounter_Ethernet).c_str());
 #endif
-			bError |= 0==Publish(String(strTopic+"/$stats/uptime-mqtt").c_str(), 2, true, String(ulSecondCounter_MQTT).c_str());
-			bError |= 0==Publish(String(strTopic+"/$stats/signal").c_str(), 2, true, String(WiFi.RSSI()).c_str());
-			bError |= 0==Publish(String(strTopic+"/$stats/freeheap").c_str(), 2, true, String(ulFreeHeap).c_str());
+			bError |= 0==Publish(String(strTopic+"/$stats/uptime-mqtt").c_str(), pub_qos, true, String(ulSecondCounter_MQTT).c_str());
+			bError |= 0==Publish(String(strTopic+"/$stats/signal").c_str(), pub_qos, true, String(WiFi.RSSI()).c_str());
+			bError |= 0==Publish(String(strTopic+"/$stats/freeheap").c_str(), pub_qos, true, String(ulFreeHeap).c_str());
 
-			bError |= 0==Publish(String(strTopic+"/$stats/freeheap_contiguous").c_str(), 2, true, String(ulFreeHeapContig).c_str());
+			bError |= 0==Publish(String(strTopic+"/$stats/freeheap_contiguous").c_str(), pub_qos, true, String(ulFreeHeapContig).c_str());
 
 
 			ulFreeHeap=0xFFFFFFF;
 #if defined(ARDUINO_ARCH_ESP8266)
 			ulFreeHeapContig=0xFFFF;
-			bError |= 0==Publish(String(strTopic+"/$stats/heapfrag").c_str(), 2, true, String(uHeapFrag).c_str());
+			bError |= 0==Publish(String(strTopic+"/$stats/heapfrag").c_str(), pub_qos, true, String(uHeapFrag).c_str());
 			uHeapFrag=0;
 #else
 			ulFreeHeapContig=0xFFFFFFF;
@@ -884,9 +889,9 @@ void HomieDevice::DoInitialPublishing()
 	if(iInitialPublishing==0)
 	{
 		bool bError=false;
-		bError |= 0==Publish(String(strTopic+"/$state").c_str(), ipub_qos, true, "init");
-		bError |= 0==Publish(String(strTopic+"/$homie").c_str(), ipub_qos, true, "4.0.0");
-		bError |= 0==Publish(String(strTopic+"/$name").c_str(), ipub_qos, true, strFriendlyName.c_str());
+		bError |= 0==Publish(String(strTopic+"/$state").c_str(), pub_qos, true, "init");
+		bError |= 0==Publish(String(strTopic+"/$homie").c_str(), pub_qos, true, "4.0.0");
+		bError |= 0==Publish(String(strTopic+"/$name").c_str(), pub_qos, true, strFriendlyName.c_str());
 		if(bError)
 		{
 			HandleInitialPublishingError();
@@ -913,9 +918,9 @@ void HomieDevice::DoInitialPublishing()
 		}
 #endif
 
-		bError |= 0==Publish(String(strTopic+"/$localip").c_str(), ipub_qos, true, strIP.c_str());
-		bError |= 0==Publish(String(strTopic+"/$mac").c_str(), ipub_qos, true, strMAC.c_str());
-		bError |= 0==Publish(String(strTopic+"/$extensions").c_str(), ipub_qos, true, "");
+		bError |= 0==Publish(String(strTopic+"/$localip").c_str(), pub_qos, true, strIP.c_str());
+		bError |= 0==Publish(String(strTopic+"/$mac").c_str(), pub_qos, true, strMAC.c_str());
+		bError |= 0==Publish(String(strTopic+"/$extensions").c_str(), pub_qos, true, "");
 
 		if(bError)
 		{
@@ -932,12 +937,12 @@ void HomieDevice::DoInitialPublishing()
 	{
 		bool bError=false;
 
-		bError |= 0==Publish(String(strTopic+"/$stats").c_str(), ipub_qos, true, "uptime,signal,uptime-wifi,"
+		bError |= 0==Publish(String(strTopic+"/$stats").c_str(), pub_qos, true, "uptime,signal,uptime-wifi,"
 #if defined(USE_ETHERNET) & defined(ARDUINO_ARCH_ESP32)
 				"uptime-ethernet,"
 #endif
 				"uptime-mqtt,freeheap,freeheap_contiguous,heapfrag");
-		bError |= 0==Publish(String(strTopic+"/$stats/interval").c_str(), ipub_qos, true, "60");
+		bError |= 0==Publish(String(strTopic+"/$stats/interval").c_str(), pub_qos, true, "60");
 
 		String strNodes;
 		for(size_t i=0;i<vecNode.size();i++)
@@ -950,7 +955,7 @@ void HomieDevice::DoInitialPublishing()
 		if(bDebug) csprintf("NODES: %s\n",strNodes.c_str());
 #endif
 
-		bError |= 0==Publish(String(strTopic+"/$nodes").c_str(), ipub_qos, true, strNodes.c_str());
+		bError |= 0==Publish(String(strTopic+"/$nodes").c_str(), pub_qos, true, strNodes.c_str());
 
 		if(bError)
 		{
@@ -976,8 +981,8 @@ void HomieDevice::DoInitialPublishing()
 			if(bDebug) csprintf("NODE %i: %s\n",i,node.strFriendlyName.c_str());
 #endif
 
-			bError |= 0==Publish(String(node.GetTopic()+"/$name").c_str(), ipub_qos, true, node.strFriendlyName.c_str());
-			bError |= 0==Publish(String(node.GetTopic()+"/$type").c_str(), ipub_qos, true, node.strType.c_str());
+			bError |= 0==Publish(String(node.GetTopic()+"/$name").c_str(), pub_qos, true, node.strFriendlyName.c_str());
+			bError |= 0==Publish(String(node.GetTopic()+"/$type").c_str(), pub_qos, true, node.strType.c_str());
 
 			String strProperties;
 			for(size_t j=0;j<node.vecProperty.size();j++)
@@ -993,7 +998,7 @@ void HomieDevice::DoInitialPublishing()
 			if(bDebug) csprintf("NODE %i: %s has properties %s\n",i,node.strFriendlyName.c_str(),strProperties.c_str());
 #endif
 
-			bError |= 0==Publish(String(node.GetTopic()+"/$properties").c_str(), ipub_qos, true, strProperties.c_str());
+			bError |= 0==Publish(String(node.GetTopic()+"/$properties").c_str(), pub_qos, true, strProperties.c_str());
 
 			if(bError)
 			{
@@ -1053,17 +1058,17 @@ void HomieDevice::DoInitialPublishing()
 				else
 				{
 
-					bError |= 0==Publish(String(prop.GetTopic()+"/$name").c_str(), ipub_qos, true, prop.strFriendlyName.c_str());
-					bError |= 0==Publish(String(prop.GetTopic()+"/$settable").c_str(), ipub_qos, true, prop.GetSettable()?"true":"false");
-					bError |= 0==Publish(String(prop.GetTopic()+"/$retained").c_str(), ipub_qos, true, (prop.GetRetained() || prop.GetFakeRetained())?"true":"false");
-					bError |= 0==Publish(String(prop.GetTopic()+"/$datatype").c_str(), ipub_qos, true, GetHomieDataTypeText((eHomieDataType) prop.datatype));
+					bError |= 0==Publish(String(prop.GetTopic()+"/$name").c_str(), pub_qos, true, prop.strFriendlyName.c_str());
+					bError |= 0==Publish(String(prop.GetTopic()+"/$settable").c_str(), pub_qos, true, prop.GetSettable()?"true":"false");
+					bError |= 0==Publish(String(prop.GetTopic()+"/$retained").c_str(), pub_qos, true, (prop.GetRetained() || prop.GetFakeRetained())?"true":"false");
+					bError |= 0==Publish(String(prop.GetTopic()+"/$datatype").c_str(), pub_qos, true, GetHomieDataTypeText((eHomieDataType) prop.datatype));
 					if(prop.pstrUnit && prop.pstrUnit->length())
 					{
-						bError |= 0==Publish(String(prop.GetTopic()+"/$unit").c_str(), ipub_qos, true, prop.pstrUnit->c_str());
+						bError |= 0==Publish(String(prop.GetTopic()+"/$unit").c_str(), pub_qos, true, prop.pstrUnit->c_str());
 					}
 					if(prop.strFormat.length())
 					{
-						bError |= 0==Publish(String(prop.GetTopic()+"/$format").c_str(), ipub_qos, true, prop.strFormat.c_str());
+						bError |= 0==Publish(String(prop.GetTopic()+"/$format").c_str(), pub_qos, true, prop.strFormat.c_str());
 					}
 
 					if(prop.GetSettable())
@@ -1148,7 +1153,7 @@ void HomieDevice::DoInitialPublishing()
 	if(iInitialPublishing==5)
 	{
 		bool bError=false;
-		bError |= 0==Publish(String(strTopic+"/$state").c_str(), ipub_qos, true, "ready");
+		bError |= 0==Publish(String(strTopic+"/$state").c_str(), pub_qos, true, "ready");
 
 		if(bError)
 		{
