@@ -208,6 +208,8 @@ bool HomieProperty::Publish()
 	bool bRet=false;
 	String strPublish=strValue;
 
+	if(!GetAllowPublishing()) return true;
+
 	if(!strPublish.length() && !GetPublishEmptyString()) return true;
 
 	if(!strPublish.length() && !HomieDataTypeAllowsEmpty((eHomieDataType) datatype))
@@ -558,6 +560,7 @@ void HomieProperty::SetDebug(bool bEnable){if(bEnable) flags |= 0x100; else flag
 void HomieProperty::SetClearPayloadAfterCallback(bool bEnable){if(bEnable) flags |= 0x200; else flags &= ~0x200;}
 void HomieProperty::SetNeedsPublish(bool bEnable) {if(bEnable) flags |= 0x400; else flags &= ~0x400;}
 void HomieProperty::SetNoPublishOnSet(bool bEnable) {if(bEnable) flags |= 0x800; else flags &= ~0x800;}
+void HomieProperty::SetAllowPublishing(bool bEnable) {if(!bEnable) flags |= 0x1000; else flags &= ~0x1000;}
 
 
 
@@ -573,5 +576,6 @@ bool HomieProperty::GetDebug(){return (flags & 0x100)!=0;}
 bool HomieProperty::GetClearPayloadAfterCallback(){return (flags & 0x200)!=0;}
 bool HomieProperty::GetNeedsPublish(){return (flags & 0x400)!=0;}
 bool HomieProperty::GetNoPublishOnSet(){return (flags & 0x800)!=0;}
+bool HomieProperty::GetAllowPublishing(){return (flags & 0x1000)==0;}
 
 

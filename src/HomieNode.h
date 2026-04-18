@@ -63,6 +63,7 @@ public:
 	void SetDebug(bool bEnable);
 	void SetClearPayloadAfterCallback(bool bEnable);
 	void SetNoPublishOnSet(bool bEnable);
+	void SetAllowPublishing(bool bEnable);
 
 	bool GetSettable();
 	bool GetRetained();
@@ -72,6 +73,7 @@ public:
 	bool GetDebug();
 	bool GetClearPayloadAfterCallback();
 	bool GetNoPublishOnSet();
+	bool GetAllowPublishing();
 
 //	bool bSettable=false;
 //	bool bRetained=true;
